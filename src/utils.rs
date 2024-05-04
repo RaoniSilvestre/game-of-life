@@ -1,5 +1,7 @@
-use crate::conway_game::point::Point;
+use super::conway_game::elements::point::Point;
 use rand::Rng;
+use std::io::Stdout;
+use terminal::*;
 
 pub fn get_rand_points_list(n: usize, size: Point) -> Vec<Point> {
     let mut points_list = Vec::new();
@@ -14,4 +16,12 @@ pub fn get_rand_points_list(n: usize, size: Point) -> Vec<Point> {
         points_list.push(new_point)
     }
     points_list
+}
+
+pub fn get_ready_terminal() -> Terminal<Stdout> {
+    let terminal = terminal::stdout();
+    terminal.act(Action::HideCursor).unwrap();
+    terminal.act(Action::ClearTerminal(Clear::All)).unwrap();
+
+    terminal
 }
