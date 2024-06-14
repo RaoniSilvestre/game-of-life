@@ -1,4 +1,4 @@
-use super::cell::Cell;
+use super::cell::{Cell, State};
 use super::point::Point;
 pub struct CellMatrix;
 
@@ -17,5 +17,24 @@ impl CellMatrix {
         }
 
         new_cell_matrix
+    }
+
+    pub fn new_with_states(list_of_alive_cell_points: Vec<Point>, size: Point) -> Vec<Vec<Cell>> {
+        let mut new_cell_matrix = Self::new(size);
+
+        for point in list_of_alive_cell_points.iter() {
+            new_cell_matrix[point.row][point.col].state = State::Alive;
+        }
+
+        new_cell_matrix
+    }
+
+    pub fn print_matrix(matrix: Vec<Vec<Cell>>) {
+        for line in matrix {
+            for cell in line {
+                print!(" {:?} ", cell.state)
+            }
+            println!();
+        }
     }
 }

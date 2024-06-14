@@ -4,7 +4,8 @@ use core::panic;
 use terminal::*;
 
 fn main() -> error::Result<()> {
-    let game = ConwayGame::new(Point { row: 160, col: 36 });
+    let game_size = Point::new(160, 36);
+    let game = ConwayGame::new(game_size);
 
     match run(game) {
         Ok(_) => {}
