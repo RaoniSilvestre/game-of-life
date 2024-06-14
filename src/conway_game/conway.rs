@@ -12,7 +12,7 @@ pub struct ConwayGame {
 impl ConwayGame {
     // Inicializar Jogo
     pub fn new(size: Point) -> Self {
-        let matrix = CellMatrix::new_with_size(size);
+        let matrix = CellMatrix::new(size);
         ConwayGame { matrix, size }
     }
 
@@ -37,11 +37,13 @@ impl ConwayGame {
     }
 
     pub fn update_living_cells(&mut self) {
-        let mut matrix_out: Vec<Vec<Cell>> = CellMatrix::new_with_size(self.size);
+        let matrix_in = self.matrix.clone();
+        let update_state = Cell::update_state_factory(&matrix_in);
+        let mut matrix_out: Vec<Vec<Cell>> = CellMatrix::new(self.size);
 
         for row in self.matrix.iter() {
             for cell in row.iter() {
-                Cell::update_state(cell.point, &self.matrix, &mut matrix_out);
+                update_state(cell.point, &mut matrix_out);
             }
         }
 
@@ -50,8 +52,7 @@ impl ConwayGame {
 
     // Pinta o estado salvo na tela
     pub fn paint_screen(&mut self, terminal: &mut Terminal<Stdout>) {
-        let matrix = &self.matrix;
-        let alive_cells = ConwayGame::get_alive_cells(matrix);
+        let alive_cells = ConwayGame::get_alive_cells(&self.matrix);
 
         terminal.act(Action::ClearTerminal(Clear::All)).unwrap();
 

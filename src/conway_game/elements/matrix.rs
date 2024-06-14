@@ -3,7 +3,7 @@ use super::point::Point;
 pub struct CellMatrix;
 
 impl CellMatrix {
-    pub fn new_with_size(size: Point) -> Vec<Vec<Cell>> {
+    pub fn new(size: Point) -> Vec<Vec<Cell>> {
         let default_cell = Cell::new_default();
 
         let (rows, cols) = (size.row, size.col);

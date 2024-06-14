@@ -1,5 +1,4 @@
-use std::usize;
-
+use super::neighbour::Neighbour;
 use super::point::Point;
 
 #[derive(PartialEq, Clone, Copy, Debug, Eq)]
@@ -27,45 +26,16 @@ impl Cell {
         Cell { state, point }
     }
 
-    // Neighbours logic
-    pub fn alive_neighbours(&self, matrix: &[Vec<Cell>]) -> usize {
-        let mut alives = 0;
-
-        for dx in -1..=1 {
-            for dy in -1..=1 {
-                if dx == 0 && dy == 0 {
-                    continue;
-                }
-                let neighbor_row = (self.point.row as i32) + dx;
-                let neighbor_col = (self.point.col as i32) + dy;
-
-                if Self::is_inside_boundaries(neighbor_row, neighbor_col, matrix) {
-                    if matrix[neighbor_row as usize][neighbor_col as usize].state == State::Alive {
-                        alives += 1;
-                    }
-                }
-            }
+    pub fn update_state_factory(matrix_in: &[Vec<Cell>]) -> impl Fn(Point, &mut [Vec<Cell>]) + '_ {
+        move |point: Point, matrix_out: &mut [Vec<Cell>]| {
+            Self::update_state(&matrix_in, point, matrix_out)
         }
-
-        alives
     }
 
-    fn is_inside_boundaries(neighbor_row: i32, neighbor_col: i32, matrix: &[Vec<Cell>]) -> bool {
-        if neighbor_col < 0
-            || neighbor_row < 0
-            || neighbor_row >= matrix.len() as i32
-            || neighbor_col >= matrix[0].len() as i32
-        {
-            return false;
-        }
-
-        true
-    }
-
-    pub fn update_state(point: Point, matrix_in: &[Vec<Cell>], matrix_out: &mut [Vec<Cell>]) {
+    fn update_state(matrix_in: &[Vec<Cell>], point: Point, matrix_out: &mut [Vec<Cell>]) {
         let actual_cell = matrix_in[point.row][point.col];
 
-        let alive_neighbours = actual_cell.alive_neighbours(matrix_in);
+        let alive_neighbours = Neighbour::alive_neighbours(point, &matrix_in);
 
         let new_state = match actual_cell.state {
             State::Alive => {
