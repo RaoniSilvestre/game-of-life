@@ -1,9 +1,6 @@
-use core::panic;
 use std::usize;
 
-use super::matrix;
 use super::point::Point;
-use super::point::PointI32;
 
 #[derive(PartialEq, Clone, Copy, Debug, Eq)]
 pub enum State {
@@ -19,6 +16,13 @@ pub struct Cell {
 
 impl Cell {
     // Inicializar celula
+    pub fn new_default() -> Self {
+        Cell {
+            state: State::Dead,
+            point: Point::new_default(),
+        }
+    }
+
     pub fn new(point: Point, state: State) -> Self {
         Cell { state, point }
     }
@@ -26,6 +30,7 @@ impl Cell {
     // Neighbours logic
     pub fn alive_neighbours(&self, matrix: &[Vec<Cell>]) -> usize {
         let mut alives = 0;
+
         for dx in -1..=1 {
             for dy in -1..=1 {
                 if dx == 0 && dy == 0 {
@@ -58,10 +63,7 @@ impl Cell {
     }
 
     pub fn update_state(point: Point, matrix_in: &[Vec<Cell>], matrix_out: &mut [Vec<Cell>]) {
-        let row = point.row as usize;
-        let col = point.col as usize;
-
-        let actual_cell = matrix_in[row][col];
+        let actual_cell = matrix_in[point.row][point.col];
 
         let alive_neighbours = actual_cell.alive_neighbours(matrix_in);
 
@@ -82,6 +84,6 @@ impl Cell {
             }
         };
 
-        matrix_out[row][col].state = new_state;
+        matrix_out[point.row][point.col].state = new_state;
     }
 }

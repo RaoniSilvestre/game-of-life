@@ -2,7 +2,6 @@ use super::elements::cell::{Cell, State};
 use super::elements::matrix::CellMatrix;
 use super::elements::point::Point;
 use std::io::Stdout;
-use std::usize;
 use terminal::*;
 
 pub struct ConwayGame {
@@ -33,7 +32,7 @@ impl ConwayGame {
 
     pub fn start_state(&mut self, points_of_living_cells: Vec<Point>) {
         for point in points_of_living_cells {
-            self.matrix[point.row as usize][point.col as usize].state = State::Alive;
+            self.matrix[point.row][point.col].state = State::Alive;
         }
     }
 
@@ -57,11 +56,10 @@ impl ConwayGame {
         terminal.act(Action::ClearTerminal(Clear::All)).unwrap();
 
         for cell in alive_cells.iter() {
+            let cell_row = (cell.point.row + 10).try_into().unwrap();
+            let cell_col = (cell.point.col + 4).try_into().unwrap();
             terminal
-                .act(Action::MoveCursorTo(
-                    cell.point.row + 10,
-                    cell.point.col + 4,
-                ))
+                .act(Action::MoveCursorTo(cell_row, cell_col))
                 .unwrap();
             println!("#");
         }
