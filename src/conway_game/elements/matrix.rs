@@ -32,7 +32,7 @@ impl CellMatrix {
     pub fn print_matrix(matrix: Vec<Vec<Cell>>) {
         for line in matrix {
             for cell in line {
-                print!(" {:?} ", cell.state)
+                print!(" {:?} ", cell)
             }
             println!();
         }
