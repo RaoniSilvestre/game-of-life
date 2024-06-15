@@ -1,2 +1,3 @@
+pub mod config;
 pub mod conway_game;
-pub mod utils;
+pub mod parser;
