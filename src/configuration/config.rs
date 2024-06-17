@@ -1,9 +1,7 @@
+use super::parser::{Cli, Mode};
 use clap::Parser;
 
-use crate::{
-    conway_game::elements::point::Point,
-    parser::{Cli, Mode},
-};
+use crate::game::elements::point::Point;
 
 #[derive(Debug)]
 pub struct Config {

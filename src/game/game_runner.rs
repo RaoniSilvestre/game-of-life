@@ -1,7 +1,7 @@
-use super::super::parser::Mode;
+use super::super::configuration::config::Config;
+use super::super::configuration::parser::Mode;
 use super::elements::point::Point;
-use crate::config::Config;
-use crate::conway_game::conway::ConwayGame;
+use crate::game::conway::ConwayGame;
 use core::time::Duration;
 use std::thread::sleep;
 pub struct Runner;

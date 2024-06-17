@@ -1,5 +1,5 @@
-use cli_game_of_life::config::Config;
-use cli_game_of_life::conway_game::game_runner::Runner;
+use cli_game_of_life::configuration::config::Config;
+use cli_game_of_life::game::game_runner::Runner;
 
 fn main() {
     let config = Config::configure();
