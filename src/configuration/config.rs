@@ -1,7 +1,7 @@
 use super::parser::{Cli, Mode};
 use clap::Parser;
 
-use crate::game::elements::point::Point;
+use crate::game::elements::Point;
 
 #[derive(Debug)]
 pub struct Config {

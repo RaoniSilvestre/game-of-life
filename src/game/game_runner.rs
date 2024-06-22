@@ -1,13 +1,17 @@
-use super::super::configuration::config::Config;
-use super::super::configuration::parser::Mode;
-use super::elements::point::Point;
+use super::elements::Point;
+use crate::configuration::config::Config;
+use crate::configuration::parser::Mode;
 use crate::game::conway::ConwayGame;
 use core::time::Duration;
-use std::thread::sleep;
-pub struct Runner;
 use rand::Rng;
 use std::io::Stdout;
+use std::thread::sleep;
 use terminal::*;
+
+pub struct Runner {
+    pub game: ConwayGame,
+    pub terminal: Terminal<Stdout>,
+}
 
 impl Runner {
     pub fn run(config: Config) {

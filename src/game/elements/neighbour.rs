@@ -1,7 +1,4 @@
-use super::cell::{Cell, State};
-use super::point::Point;
-
-pub struct Neighbour;
+use super::{Cell, Neighbour, Point, State};
 
 impl Neighbour {
     // Neighbours logic

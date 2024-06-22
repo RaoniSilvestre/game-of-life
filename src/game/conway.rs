@@ -1,6 +1,4 @@
-use super::elements::cell::{Cell, State};
-use super::elements::matrix::CellMatrix;
-use super::elements::point::Point;
+use super::elements::{Cell, CellMatrix, Point, State};
 use std::io::Stdout;
 use terminal::*;
 

@@ -1,4 +1,4 @@
-use crate::game::elements::point::Point;
+use crate::game::elements::Point;
 use async_trait::async_trait;
 
 pub struct Client {

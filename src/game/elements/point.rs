@@ -1,8 +1,4 @@
-#[derive(PartialEq, Eq, Hash, Clone, Copy, Debug)]
-pub struct Point {
-    pub row: usize,
-    pub col: usize,
-}
+use crate::game::elements::Point;
 
 impl Point {
     pub fn new_default() -> Self {

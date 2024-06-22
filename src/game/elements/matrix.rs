@@ -1,6 +1,4 @@
-use super::cell::{Cell, State};
-use super::point::Point;
-pub struct CellMatrix;
+use super::{Cell, CellMatrix, Point, State};
 
 impl CellMatrix {
     pub fn new(size: Point) -> Vec<Vec<Cell>> {

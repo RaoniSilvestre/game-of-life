@@ -1,17 +1,4 @@
-use super::neighbour::Neighbour;
-use super::point::Point;
-
-#[derive(PartialEq, Clone, Copy, Debug, Eq)]
-pub enum State {
-    Alive,
-    Dead,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct Cell {
-    pub state: State,
-    pub point: Point,
-}
+use super::{Cell, Neighbour, Point, State};
 
 impl Cell {
     // Inicializar celula
