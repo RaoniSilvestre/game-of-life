@@ -1,7 +1,8 @@
 use gol::configuration::Config;
-use gol::game::game_runner::Runner;
+use gol::game::Runner;
 
 fn main() {
     let config = Config::configure();
-    Runner::run(config)
+    let mut runner = Runner::new(config);
+    runner.run();
 }

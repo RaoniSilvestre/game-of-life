@@ -1,9 +1,13 @@
 pub mod session;
 
-use crate::game::game_runner::Runner;
-use crate::websocket::server::session::{GameSession, Session};
+use crate::{
+    game::Runner,
+    websocket::server::session::{GameSession, Session},
+};
 use async_trait::async_trait;
+use std::sync::{Arc, Mutex};
 use std::{net::SocketAddr, time::Duration};
+use tracing::info;
 
 #[derive(Debug)]
 pub enum Message {
@@ -11,7 +15,9 @@ pub enum Message {
     Share,
 }
 
-pub struct GameServer {}
+pub struct GameServer {
+    pub game_runner: Arc<Mutex<Runner>>,
+}
 
 #[async_trait]
 impl ezsockets::ServerExt for GameServer {
@@ -25,7 +31,6 @@ impl ezsockets::ServerExt for GameServer {
         address: SocketAddr,
     ) -> Result<Session, Option<ezsockets::CloseFrame>> {
         let id = address.port();
-
         let session = Session::create(
             |handle| {
                 tokio::spawn({
