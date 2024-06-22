@@ -1,6 +1,6 @@
 use ezsockets::ClientConfig;
-use gol::game::elements::point::Point;
-use gol::websocket::client::client::Client;
+use gol::game::elements::Point;
+use gol::websocket::client::Client;
 use std::io::BufRead;
 
 #[tokio::main]

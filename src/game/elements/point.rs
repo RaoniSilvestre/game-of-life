@@ -10,7 +10,6 @@ impl Point {
 }
 
 impl From<&[u8]> for Point {
-    // add code here
     fn from(bytes: &[u8]) -> Self {
         let row =
             usize::from_le_bytes(bytes[0..8].try_into().expect("Slice with incorrect lenght"));

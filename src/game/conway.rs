@@ -1,11 +1,7 @@
 use super::elements::{Cell, CellMatrix, Point, State};
+use super::ConwayGame;
 use std::io::Stdout;
 use terminal::*;
-
-pub struct ConwayGame {
-    pub matrix: Vec<Vec<Cell>>,
-    pub size: Point,
-}
 
 impl ConwayGame {
     // Inicializar Jogo

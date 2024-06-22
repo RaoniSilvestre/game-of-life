@@ -1,7 +1,6 @@
 use super::elements::Point;
-use crate::configuration::config::Config;
-use crate::configuration::parser::Mode;
-use crate::game::conway::ConwayGame;
+use crate::configuration::{Config, Mode};
+use crate::game::ConwayGame;
 use core::time::Duration;
 use rand::Rng;
 use std::io::Stdout;
@@ -52,14 +51,14 @@ impl Runner {
 }
 
 // Funções auxiliares!
-pub fn get_terminal() -> Terminal<Stdout> {
+fn get_terminal() -> Terminal<Stdout> {
     let terminal = terminal::stdout();
     terminal.act(Action::HideCursor).unwrap();
     terminal.act(Action::ClearTerminal(Clear::All)).unwrap();
     terminal
 }
 
-pub fn random_generator(n: usize, size: Point) -> Vec<Point> {
+fn random_generator(n: usize, size: Point) -> Vec<Point> {
     let mut points_list = Vec::new();
     let mut rng_1 = rand::thread_rng();
     let mut rng_2 = rand::thread_rng();

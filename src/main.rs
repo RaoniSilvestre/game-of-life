@@ -1,4 +1,4 @@
-use gol::configuration::config::Config;
+use gol::configuration::Config;
 use gol::game::game_runner::Runner;
 
 fn main() {

@@ -1,7 +1,6 @@
 use super::{Cell, Neighbour, Point, State};
 
 impl Neighbour {
-    // Neighbours logic
     pub fn alive_neighbours(point: Point, matrix: &[Vec<Cell>]) -> usize {
         let mut alives = 0;
 
