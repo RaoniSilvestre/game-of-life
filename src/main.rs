@@ -1,7 +1,8 @@
-use cli_game_of_life::configuration::config::Config;
-use cli_game_of_life::game::game_runner::Runner;
+use gol::configuration::Config;
+use gol::game::Runner;
 
 fn main() {
     let config = Config::configure();
-    Runner::run(config)
+    let mut runner = Runner::new(config);
+    runner.run();
 }

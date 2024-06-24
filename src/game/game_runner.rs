@@ -1,71 +1,69 @@
-use super::super::configuration::config::Config;
-use super::super::configuration::parser::Mode;
-use super::elements::point::Point;
-use crate::game::conway::ConwayGame;
+use tokio::time::sleep;
+
+use super::elements::Cell;
+use super::random_generator;
+use super::Runner;
+use crate::configuration::{Config, Mode};
+use crate::game::ConwayGame;
 use core::time::Duration;
-use std::thread::sleep;
-pub struct Runner;
-use rand::Rng;
-use std::io::Stdout;
-use terminal::*;
 
 impl Runner {
-    pub fn run(config: Config) {
-        match config.mode {
-            Mode::Random => Self::random_run(config),
-            Mode::Test => Self::testing_run(config),
+    pub fn new(config: Config) -> Self {
+        let game = ConwayGame::new(config.size);
+        let terminal = terminal::stdout();
+        Runner {
+            game,
+            terminal,
+            config,
         }
     }
 
-    pub fn random_run(config: Config) {
-        let mut game = ConwayGame::new(config.size);
+    pub fn start(&mut self) {
+        let initial_state = random_generator(self.config.rand_points, self.game.size);
+        self.game.start_state(initial_state)
+    }
 
-        let mut terminal = get_terminal();
-        let mut painter = ConwayGame::painting_factory(config.char, &mut terminal);
+    pub fn update(&mut self) {
+        self.game.update_living_cells()
+    }
 
-        let initial_state = random_generator(config.rand_points, game.size);
+    pub fn state(&self) -> Vec<Cell> {
+        ConwayGame::get_alive_cells(&self.game.matrix)
+    }
 
-        game.start_state(initial_state);
+    pub fn print(&mut self) {
+        let mut painter = ConwayGame::painting_factory(self.config.char, &mut self.terminal);
+        let alives = ConwayGame::get_alive_cells(&self.game.matrix);
+        painter(alives)
+    }
 
-        let mut counter = 1;
+    pub async fn run(&mut self) {
+        match self.config.mode {
+            Mode::Random => self.random_run().await,
+            Mode::Test => self.testing_run().await,
+        }
+    }
+
+    pub async fn sleep(fps: u64) {
+        sleep(Duration::from_millis(1000 / fps)).await
+    }
+
+    pub async fn sleep_half(fps: u64) {
+        sleep(Duration::from_millis(1000 / (fps * 2))).await;
+    }
+
+    async fn random_run(&mut self) {
+        self.start();
         loop {
-            painter(&game.matrix);
-            game.update_living_cells();
-            sleep(Duration::from_millis(1000 / config.fps));
-
-            if let Some(duration) = config.duration {
-                if counter == duration {
-                    break;
-                }
-                counter += 1;
-            }
+            self.print();
+            Runner::sleep(self.config.fps).await;
+            self.update();
         }
     }
-    pub fn testing_run(config: Config) {
-        println!("{:?}", config);
+
+    async fn testing_run(&self) {
+        println!("{:?}", self.config);
         println!("Rodando em modo de teste!");
+        sleep(Duration::from_secs(10)).await;
     }
-}
-
-// Funções auxiliares!
-pub fn get_terminal() -> Terminal<Stdout> {
-    let terminal = terminal::stdout();
-    terminal.act(Action::HideCursor).unwrap();
-    terminal.act(Action::ClearTerminal(Clear::All)).unwrap();
-    terminal
-}
-
-pub fn random_generator(n: usize, size: Point) -> Vec<Point> {
-    let mut points_list = Vec::new();
-    let mut rng_1 = rand::thread_rng();
-    let mut rng_2 = rand::thread_rng();
-    for _ in 0..n {
-        let new_point = Point {
-            row: rng_1.gen_range(1..size.row - 1),
-            col: rng_2.gen_range(1..size.col - 1),
-        };
-
-        points_list.push(new_point)
-    }
-    points_list
 }
