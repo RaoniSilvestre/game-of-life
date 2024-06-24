@@ -1,27 +1,33 @@
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
+use tokio::sync::Mutex;
 
 use ezsockets::Server;
 use gol::{configuration::Config, game::Runner, websocket::server::GameServer};
+use tracing::info;
 
 #[tokio::main]
 pub async fn main() {
     tracing_subscriber::fmt::init();
     let config = Config::configure();
+    let mut runner: Runner = Runner::new(config);
 
-    let runner: Runner = Runner::new(config);
+    runner.start();
 
     let arc_runner = Arc::new(Mutex::new(runner));
-    let _arc_runner = arc_runner.clone();
 
-    let (server, _) = Server::create(|_handle| GameServer {
-        game_runner: _arc_runner,
+    let (server, _) = Server::create(|handle| GameServer {
+        game_runner: arc_runner.clone(),
+        handle,
+        config,
     });
 
     tokio::task::spawn(async move {
         loop {
-            let mut locked_runner = arc_runner.lock().unwrap();
+            let mut locked_runner = arc_runner.lock().await;
+            info!("Atualizando jogo");
             locked_runner.update();
-            locked_runner.sleep();
+            Runner::sleep(locked_runner.config.fps).await;
+            drop(locked_runner)
         }
     });
 
