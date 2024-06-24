@@ -3,7 +3,7 @@ pub mod parser;
 
 use crate::game::elements::Point;
 use clap::{Parser, ValueEnum};
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct Config {
     pub size: Point,
     pub char: char,
@@ -29,19 +29,19 @@ pub struct Cli {
     pub mode: Mode,
 
     /// Tamanho do eixo X do jogo
-    #[arg(short = 'x', long, default_value_t = 100)]
+    #[arg(short = 'x', long, default_value_t = 40)]
     pub dx: usize,
 
     /// Tamanho do eixo Y do jogo
-    #[arg(short = 'y', long, default_value_t = 30)]
+    #[arg(short = 'y', long, default_value_t = 20)]
     pub dy: usize,
 
     /// Frames por segundo
-    #[arg(short, long, default_value_t = 10)]
+    #[arg(short, long, default_value_t = 1)]
     pub fps: u64,
 
     /// Quantidade de bolinhas aleatórias, usado apenas no modo "random"
-    #[arg(short, long, default_value_t = 3000)]
+    #[arg(short, long, default_value_t = 200)]
     pub random: usize,
 
     /// Caractere que apareçerá na tela como célula viva
