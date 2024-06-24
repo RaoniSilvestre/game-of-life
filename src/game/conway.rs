@@ -45,14 +45,12 @@ impl ConwayGame {
     }
 
     // Pinta o estado salvo na tela
-    pub fn paint_screen(tinta: char, matrix: &[Vec<Cell>], terminal: &mut Terminal<Stdout>) {
-        let alive_cells = ConwayGame::get_alive_cells(matrix);
-
+    pub fn paint_screen(tinta: char, alive_cells: &Vec<Cell>, terminal: &mut Terminal<Stdout>) {
         terminal.act(Action::ClearTerminal(Clear::All)).unwrap();
 
         for cell in alive_cells.iter() {
-            let cell_row = (cell.point.row + 10).try_into().unwrap();
-            let cell_col = (cell.point.col + 4).try_into().unwrap();
+            let cell_row = (cell.point.row).try_into().unwrap();
+            let cell_col = (cell.point.col).try_into().unwrap();
             terminal
                 .act(Action::MoveCursorTo(cell_row, cell_col))
                 .unwrap();
@@ -63,7 +61,7 @@ impl ConwayGame {
     pub fn painting_factory(
         tinta: char,
         terminal: &mut Terminal<Stdout>,
-    ) -> impl FnMut(&[Vec<Cell>]) + '_ {
-        move |matrix: &[Vec<Cell>]| Self::paint_screen(tinta, matrix, terminal)
+    ) -> impl FnMut(Vec<Cell>) + '_ {
+        move |alives: Vec<Cell>| Self::paint_screen(tinta, &alives, terminal)
     }
 }
