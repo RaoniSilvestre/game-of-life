@@ -1,32 +1,34 @@
-use super::Message;
-use crate::game::elements::Point;
-use async_trait::async_trait;
+use std::sync::Arc;
+use tokio::sync::Mutex;
 use tracing::info;
 
-pub type SessionID = u16;
-pub type Session = ezsockets::Session<SessionID, Message>;
+use crate::game::{elements::Point, Runner};
+use async_trait::async_trait;
 
-#[derive(Debug)]
+pub type SessionID = u16;
+pub type Session = ezsockets::Session<SessionID, ()>;
+
 pub struct GameSession {
     pub handle: Session,
     pub id: SessionID,
-    pub counter: usize,
+    pub game_runner: Arc<Mutex<Runner>>,
+    pub fps: u64,
 }
 
 #[async_trait]
 impl ezsockets::SessionExt for GameSession {
     type ID = SessionID;
-    type Call = Message;
+    type Call = ();
 
     fn id(&self) -> &Self::ID {
         &self.id
     }
 
     async fn on_text(&mut self, text: String) -> Result<(), ezsockets::Error> {
-        let _ = self.handle.text(text.clone()); // Send response to the client
+        let _ = self.handle.text(text.clone());
         let id = self.handle.id;
 
-        tracing::info!("Message from {id}: {text:?}");
+        info!("Message from {id}: {text:?}");
         Ok(())
     }
 
@@ -36,22 +38,18 @@ impl ezsockets::SessionExt for GameSession {
         Ok(())
     }
 
-    async fn on_call(&mut self, call: Self::Call) -> Result<(), ezsockets::Error> {
-        match call {
-            Message::Increment => {
-                self.counter += 1;
-                info!("{} : {}", self.id, self.counter)
-            }
-            Message::Share => {
-                let _ = self
-                    .handle
-                    .binary(Point {
-                        row: self.counter,
-                        col: self.counter,
-                    })
-                    .unwrap();
-            }
+    async fn on_call(&mut self, _: Self::Call) -> Result<(), ezsockets::Error> {
+        info!("{} : Iniciando call", self.id);
+        let game_state = self.game_runner.clone().lock().await.state();
+        let length = game_state.len();
+
+        info!("{} : Enviando {} pontos", self.id, length);
+        let _ = self.handle.binary(vec![]);
+        for cell in game_state {
+            let _ = self.handle.binary(cell.point);
         }
+
+        info!("{} : Pontos enviados", self.id);
         Ok(())
     }
 }
