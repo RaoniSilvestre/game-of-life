@@ -1,10 +1,11 @@
+use tokio::time::sleep;
+
 use super::elements::Cell;
 use super::random_generator;
 use super::Runner;
 use crate::configuration::{Config, Mode};
 use crate::game::ConwayGame;
 use core::time::Duration;
-use std::thread::sleep;
 
 impl Runner {
     pub fn new(config: Config) -> Self {
@@ -32,32 +33,37 @@ impl Runner {
 
     pub fn print(&mut self) {
         let mut painter = ConwayGame::painting_factory(self.config.char, &mut self.terminal);
-        painter(&self.game.matrix)
+        let alives = ConwayGame::get_alive_cells(&self.game.matrix);
+        painter(alives)
     }
 
-    pub fn run(&mut self) {
+    pub async fn run(&mut self) {
         match self.config.mode {
-            Mode::Random => self.random_run(),
-            Mode::Test => self.testing_run(),
+            Mode::Random => self.random_run().await,
+            Mode::Test => self.testing_run().await,
         }
     }
 
-    pub fn sleep(&self) {
-        sleep(Duration::from_millis(1000 / self.config.fps))
+    pub async fn sleep(fps: u64) {
+        sleep(Duration::from_millis(1000 / fps)).await
     }
 
-    fn random_run(&mut self) {
+    pub async fn sleep_half(fps: u64) {
+        sleep(Duration::from_millis(1000 / (fps * 2))).await;
+    }
+
+    async fn random_run(&mut self) {
         self.start();
         loop {
             self.print();
-            self.sleep();
+            Runner::sleep(self.config.fps).await;
             self.update();
         }
     }
 
-    fn testing_run(&self) {
+    async fn testing_run(&self) {
         println!("{:?}", self.config);
         println!("Rodando em modo de teste!");
-        sleep(Duration::from_secs(10));
+        sleep(Duration::from_secs(10)).await;
     }
 }
