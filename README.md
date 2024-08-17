@@ -3,7 +3,7 @@
 ![GitHub repo size](https://img.shields.io/github/repo-size/RaoniSilvestre/game-of-life?style=for-the-badge)
 ![GitHub language count](https://img.shields.io/github/languages/count/?style=for-the-badge)
 
-<img src="imagem.png" alt="Exemplo de funcionamento">
+<img src="" alt="Exemplo de funcionamento">
 
 > Utilização de websockets para enviar sinais do servidor com estados do game-of-life para clientes que exibem o estado atual do jogo.
 
