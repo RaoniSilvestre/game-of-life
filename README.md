@@ -45,7 +45,7 @@ cargo run --bin server
 
 Esses parâmetros apenas funcionam nos binários local e server.
 
-```bash
+```
 $ cargo run
 Usage: local [OPTIONS]
 
