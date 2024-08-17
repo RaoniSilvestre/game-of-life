@@ -1,11 +1,10 @@
 # Game of life with websockets 
 
 ![GitHub repo size](https://img.shields.io/github/repo-size/RaoniSilvestre/game-of-life?style=for-the-badge)
-![GitHub language count](https://img.shields.io/github/languages/count/?style=for-the-badge)
+![GitHub language count](https://img.shields.io/github/languages/count/RaoniSilvestre/game-of-life?style=for-the-badge)
 
-<img src="" alt="Exemplo de funcionamento">
-
-> Utilização de websockets para enviar sinais do servidor com estados do game-of-life para clientes que exibem o estado atual do jogo.
+https://github.com/user-attachments/assets/0f92d505-9240-4420-b318-f29155d9ac05
+> Utilização de websockets para o servidor enviar o estado atual do jogo para os clientes conectados.
 
 ### Ajustes e melhorias
 
