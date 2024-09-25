@@ -1,8 +1,6 @@
 #[cfg(test)]
 mod matrix_tests {
-    use cli_game_of_life::conway_game::elements::{
-        cell::Cell, matrix::CellMatrix, neighbour::Neighbour, point::Point,
-    };
+    use gol::game::elements::{Cell, CellMatrix, Neighbour, Point};
 
     #[test]
     fn matrix_should_return_that_cell_has_2_neighbours() {

@@ -1,9 +1,6 @@
 #[cfg(test)]
 mod cell_tests {
-    use cli_game_of_life::conway_game::elements::{
-        cell::{Cell, State},
-        point::Point,
-    };
+    use gol::game::elements::{Cell, Point, State};
     use rand::Rng;
 
     #[test]
