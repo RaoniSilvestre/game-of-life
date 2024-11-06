@@ -1,5 +1,8 @@
+use std::io;
+
 use ezsockets::ClientConfig;
 use gol::websocket::client::Client;
+use ratatui::{prelude::CrosstermBackend, Terminal};
 
 #[tokio::main]
 pub async fn main() {
@@ -8,7 +11,7 @@ pub async fn main() {
     let (_handle, future) = ezsockets::connect(
         |_client| Client {
             vec_points: vec![],
-            terminal: terminal::stdout(),
+            terminal: Terminal::new(CrosstermBackend::new(io::stdout())).unwrap(),
         },
         config,
     )

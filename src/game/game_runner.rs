@@ -1,3 +1,5 @@
+use ratatui::prelude::CrosstermBackend;
+use ratatui::Terminal;
 use tokio::time::sleep;
 
 use super::elements::Cell;
@@ -6,11 +8,12 @@ use super::Runner;
 use crate::configuration::{Config, Mode};
 use crate::game::ConwayGame;
 use core::time::Duration;
+use std::io;
 
 impl Runner {
     pub fn new(config: Config) -> Self {
         let game = ConwayGame::new(config.size);
-        let terminal = terminal::stdout();
+        let terminal = Terminal::new(CrosstermBackend::new(io::stdout())).unwrap();
         Runner {
             game,
             terminal,

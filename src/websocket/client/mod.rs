@@ -3,11 +3,12 @@ use std::io::Stdout;
 use crate::game::elements::{Cell, State};
 use crate::game::{elements::Point, ConwayGame};
 use async_trait::async_trait;
-use terminal::Terminal;
+use ratatui::prelude::CrosstermBackend;
+use ratatui::Terminal;
 
 pub struct Client {
     pub vec_points: Vec<Cell>,
-    pub terminal: Terminal<Stdout>,
+    pub terminal: Terminal<CrosstermBackend<Stdout>>,
 }
 
 #[async_trait]

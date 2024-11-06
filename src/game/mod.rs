@@ -5,8 +5,8 @@ pub mod game_runner;
 use super::configuration::Config;
 use elements::{Cell, Point};
 use rand::Rng;
+use ratatui::{prelude::CrosstermBackend, Terminal};
 use std::io::Stdout;
-use terminal::Terminal;
 
 pub struct ConwayGame {
     pub matrix: Vec<Vec<Cell>>,
@@ -15,7 +15,7 @@ pub struct ConwayGame {
 
 pub struct Runner {
     pub game: ConwayGame,
-    pub terminal: Terminal<Stdout>,
+    pub terminal: Terminal<CrosstermBackend<Stdout>>,
     pub config: Config,
 }
 

@@ -1,10 +1,16 @@
+use crossterm::style::Color;
+use ratatui::layout::Rect;
+use ratatui::prelude::CrosstermBackend;
+use ratatui::widgets::Block;
+use ratatui::Terminal;
+
 use super::elements::{Cell, CellMatrix, Point, State};
 use super::ConwayGame;
-use std::io::Stdout;
-use terminal::*;
+use crossterm::{execute, terminal};
+use ratatui::prelude::*;
+use std::io::{self, Stdout};
 
 impl ConwayGame {
-    // Inicializar Jogo
     pub fn new(size: Point) -> Self {
         let matrix = CellMatrix::new(size);
         ConwayGame { matrix, size }
@@ -45,22 +51,32 @@ impl ConwayGame {
     }
 
     // Pinta o estado salvo na tela
-    pub fn paint_screen(tinta: char, alive_cells: &Vec<Cell>, terminal: &mut Terminal<Stdout>) {
-        terminal.act(Action::ClearTerminal(Clear::All)).unwrap();
+    pub fn paint_screen(
+        _tinta: char,
+        alive_cells: &Vec<Cell>,
+        terminal: &mut Terminal<CrosstermBackend<Stdout>>,
+    ) {
+        terminal
+            .draw(|f| {
+                let size = f.area();
+                // Definir o fundo rosa para toda a tela
+                let background = Block::default().style(Style::default().bg(style::Color::Red));
+                f.render_widget(background, size);
 
-        for cell in alive_cells.iter() {
-            let cell_row = (cell.point.row).try_into().unwrap();
-            let cell_col = (cell.point.col).try_into().unwrap();
-            terminal
-                .act(Action::MoveCursorTo(cell_row, cell_col))
-                .unwrap();
-            println!("{}", tinta);
-        }
+                for cell in alive_cells.iter() {
+                    let area = Rect::new(cell.point.col as u16, cell.point.row as u16, 1, 1); // Bloco maior para a célula viva
+                                                                                              // Bloco roxo para a célula viva
+                    let cell_block =
+                        Block::default().style(Style::default().bg(style::Color::Magenta));
+                    f.render_widget(cell_block, area);
+                }
+            })
+            .unwrap();
     }
 
     pub fn painting_factory(
         tinta: char,
-        terminal: &mut Terminal<Stdout>,
+        terminal: &mut Terminal<CrosstermBackend<Stdout>>,
     ) -> impl FnMut(Vec<Cell>) + '_ {
         move |alives: Vec<Cell>| Self::paint_screen(tinta, &alives, terminal)
     }
