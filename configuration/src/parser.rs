@@ -1,4 +1,4 @@
-use crate::configuration::Mode;
+use super::Mode;
 
 impl ToString for Mode {
     fn to_string(&self) -> String {

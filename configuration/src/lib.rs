@@ -1,8 +1,8 @@
 pub mod config;
 pub mod parser;
 
-use crate::game::elements::Point;
 use clap::{Parser, ValueEnum};
+use game::elements::Point;
 #[derive(Debug, Clone, Copy)]
 pub struct Config {
     pub size: Point,
@@ -15,9 +15,7 @@ pub struct Config {
 
 #[derive(ValueEnum, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Mode {
-    /// Start in test mode
     Test,
-    /// Start in random mode
     Random,
 }
 

@@ -1,4 +1,4 @@
-use crate::game::elements::Point;
+use super::Point;
 
 impl Point {
     pub fn new_default() -> Self {

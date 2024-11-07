@@ -3,27 +3,15 @@ name = "gol"
 version = "0.1.0"
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
-[dependencies]
-clap = { version = "4.5.7", features = ["derive"] }
-rand = "0.8.5"
-async-trait = "0.1.52"
-ezsockets = { version="*", features = ["tungstenite"] }
-tokio = { version = "1.17.0", features = ["full"] }
-tracing = "0.1.32"
-tracing-subscriber = "0.3.9"
-crossterm = "0.28.1"
-ratatui = "0.29.0"
+[workspace]
+members = [ 
+  "configuration",
+  "game", 
+  "runner", 
+  "view", 
+  "websocket"
+]
 
 [[bin]]
-name = "client"
-path = "src/client.rs"
-
-[[bin]]
-name = "server"
-path = "src/server.rs"
-
-[[bin]]
-name = "local"
-path = "src/main.rs"
+name = "main"
+path = "./runner/src/main.rs"

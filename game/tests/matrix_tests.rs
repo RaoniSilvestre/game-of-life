@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod matrix_tests {
-    use gol::game::elements::{Cell, CellMatrix, Neighbour, Point};
+    use game::elements::{Cell, CellMatrix, Neighbour, Point};
 
     #[test]
     fn matrix_should_return_that_cell_has_2_neighbours() {
