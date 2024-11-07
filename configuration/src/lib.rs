@@ -27,12 +27,12 @@ pub struct Cli {
     pub mode: Mode,
 
     /// Tamanho do eixo X do jogo
-    #[arg(short = 'x', long, default_value_t = 40)]
-    pub dx: usize,
+    #[arg(short = 'x', long)]
+    pub dx: Option<usize>,
 
     /// Tamanho do eixo Y do jogo
-    #[arg(short = 'y', long, default_value_t = 180)]
-    pub dy: usize,
+    #[arg(short = 'y', long)]
+    pub dy: Option<usize>,
 
     /// Frames por segundo
     #[arg(short, long, default_value_t = 1)]

@@ -3,9 +3,7 @@ use super::{Cell, CellMatrix, Point, State};
 impl CellMatrix {
     pub fn new(size: Point) -> Vec<Vec<Cell>> {
         let default_cell = Cell::new_default();
-
         let (rows, cols) = (size.row, size.col);
-
         let mut new_cell_matrix = vec![vec![default_cell; cols.into()]; rows.into()];
 
         for i in 0..rows {

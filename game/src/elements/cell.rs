@@ -13,17 +13,26 @@ impl Cell {
         Cell { state, point }
     }
 
-    pub fn update_state_factory(matrix_in: &[Vec<Cell>]) -> impl Fn(Point, &mut [Vec<Cell>]) + '_ {
+    pub fn update_state_factory(
+        matrix_in: &[Vec<Cell>],
+        size: Point,
+    ) -> impl Fn(Point, &mut [Vec<Cell>]) + '_ {
         move |point: Point, matrix_out: &mut [Vec<Cell>]| {
-            Self::update_state(&matrix_in, point, matrix_out)
+            Self::update_state(&matrix_in, matrix_out, point, size)
         }
     }
 
-    fn update_state(matrix_in: &[Vec<Cell>], point: Point, matrix_out: &mut [Vec<Cell>]) {
-        let actual_cell = matrix_in[point.row][point.col];
+    fn update_state(
+        matrix_in: &[Vec<Cell>],
+        matrix_out: &mut [Vec<Cell>],
+        point: Point,
+        size: Point,
+    ) {
+        let x = point.row % size.row;
+        let y = point.col % size.col;
 
-        let alive_neighbours = Neighbour::alive_neighbours(point, &matrix_in);
-
+        let actual_cell = matrix_in[x][y];
+        let alive_neighbours = Neighbour::alive_neighbours(&matrix_in, point, size);
         let new_state = match actual_cell.state {
             State::Alive => {
                 if alive_neighbours == 2 || alive_neighbours == 3 {

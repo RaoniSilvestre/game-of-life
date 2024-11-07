@@ -33,7 +33,7 @@ impl ConwayGame {
 
     pub fn update_living_cells(&mut self) {
         let matrix_in = self.matrix.clone();
-        let update_state = Cell::update_state_factory(&matrix_in);
+        let update_state = Cell::update_state_factory(&matrix_in, self.size);
         let mut matrix_out: Vec<Vec<Cell>> = CellMatrix::new(self.size);
 
         for row in self.matrix.iter() {
