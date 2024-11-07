@@ -15,7 +15,6 @@ impl ConwayGame {
 
     pub fn get_alive_cells(matrix: &[Vec<Cell>]) -> Vec<Cell> {
         let mut alive_cells = Vec::new();
-
         for row in matrix.iter() {
             for cell in row.iter() {
                 if cell.state == State::Alive {
@@ -23,7 +22,6 @@ impl ConwayGame {
                 }
             }
         }
-
         alive_cells
     }
 

@@ -15,7 +15,7 @@ pub struct Runner {
 impl Runner {
     pub fn new(config: Config) -> Self {
         let game = ConwayGame::new(config.size);
-        let painter = BasicPainter::new();
+        let painter = BasicPainter::new(config.size);
         Runner {
             game,
             painter,

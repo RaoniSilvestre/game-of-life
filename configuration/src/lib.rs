@@ -31,7 +31,7 @@ pub struct Cli {
     pub dx: usize,
 
     /// Tamanho do eixo Y do jogo
-    #[arg(short = 'y', long, default_value_t = 20)]
+    #[arg(short = 'y', long, default_value_t = 180)]
     pub dy: usize,
 
     /// Frames por segundo
@@ -39,7 +39,7 @@ pub struct Cli {
     pub fps: u64,
 
     /// Quantidade de bolinhas aleatórias, usado apenas no modo "random"
-    #[arg(short, long, default_value_t = 200)]
+    #[arg(short, long, default_value_t = 2000)]
     pub random: usize,
 
     /// Caractere que apareçerá na tela como célula viva
