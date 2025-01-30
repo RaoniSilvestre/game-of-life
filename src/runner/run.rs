@@ -1,16 +1,17 @@
 use std::{
-    io::{self, stdout},
+    io::{self},
+    process::exit,
     time::Duration,
 };
 
 use crossterm::{
-    event::{self, read, EnableMouseCapture, Event, MouseButton, MouseEventKind},
+    event::{DisableMouseCapture, EnableMouseCapture},
     execute,
-    terminal::{enable_raw_mode, EnterAlternateScreen},
-    ExecutableCommand,
+    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
 use tokio::{sync::mpsc, time};
-use tracing::{debug, error};
+
+use crate::conway::{Cell, State};
 
 use super::{Runner, RunnerEvent};
 
@@ -35,38 +36,25 @@ impl Runner {
         self.start();
         while let Some(event) = rx.recv().await {
             match event {
-                RunnerEvent::Input((x, y)) => {
-                    debug!("x: {x} | y: {y}");
-                    self.update();
-                }
                 RunnerEvent::Tick => {
-                    self.update();
-                }
-            }
-        }
-    }
-
-    async fn event_listener(tx: mpsc::Sender<RunnerEvent>) {
-        loop {
-            if event::poll(Duration::from_millis(100)).unwrap() {
-                match read().expect("Erro ao ler input do terminal") {
-                    Event::Mouse(e) => {
-                        if let MouseEventKind::Down(mdown) = e.kind {
-                            debug!("MDOWN");
-                            let send_event = tx.send(RunnerEvent::Input((e.row, e.column))).await;
-
-                            if let Err(err) = send_event {
-                                error!("Erro ao enviar: {}", err);
-                            }
-                        }
+                    if !self.stop {
+                        self.update();
                     }
-                    Event::FocusGained => todo!(),
-                    Event::FocusLost => todo!(),
-                    Event::Key(_) => todo!(),
-                    Event::Paste(_) => todo!(),
-                    Event::Resize(_, _) => todo!(),
+                }
+                RunnerEvent::Revive(p) => {
+                    self.add_cell(Cell::new(p, State::Alive));
+                }
+                RunnerEvent::Kill(p) => {
+                    self.add_cell(Cell::new(p, State::Dead));
+                }
+                RunnerEvent::ToggleRun => self.stop = !self.stop,
+                RunnerEvent::Quit => {
+                    disable_raw_mode().unwrap();
+                    execute!(io::stdout(), LeaveAlternateScreen, DisableMouseCapture).unwrap();
+                    exit(0);
                 }
             }
+            self.render();
         }
     }
 

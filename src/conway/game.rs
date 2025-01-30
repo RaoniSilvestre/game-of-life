@@ -1,5 +1,6 @@
 use super::{Cell, Matrix, Point, State};
 
+#[derive(Debug)]
 pub struct ConwayGame {
     pub matrix: Vec<Vec<Cell>>,
     pub size: Point,

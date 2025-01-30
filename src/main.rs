@@ -1,4 +1,3 @@
-use crossterm::terminal::enable_raw_mode;
 use game_of_life::{Configuration, Runner};
 use tracing::debug;
 

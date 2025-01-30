@@ -1,27 +1,28 @@
-use std::{thread::sleep, time::Duration};
-
-use tracing::debug;
-
+mod event_listener;
 mod run;
 
 use crate::{
     configuration::Configuration,
-    conway::Cell,
-    utils::random_generator,
+    conway::{Cell, Point},
     view::{BasicPainter, Paint},
     ConwayGame,
 };
 
+#[derive(Debug)]
 pub struct Runner {
     pub game: ConwayGame,
     pub painter: BasicPainter,
     pub config: Configuration,
+    pub stop: bool,
 }
 
 #[derive(Debug)]
-enum RunnerEvent {
+pub enum RunnerEvent {
     Tick,
-    Input((u16, u16)),
+    Revive(Point),
+    Kill(Point),
+    ToggleRun,
+    Quit,
 }
 
 impl Runner {
@@ -32,13 +33,12 @@ impl Runner {
             game,
             painter,
             config,
+            stop: true,
         }
     }
 
     fn start(&mut self) {
-        debug!("Inicializando jogo");
-        let initial_state = random_generator(self.config.rand_points, self.game.size);
-        self.game.start_state(initial_state);
+        self.game.start_state(Vec::new())
     }
 
     fn update(&mut self) {
@@ -54,8 +54,8 @@ impl Runner {
         self.painter.paint(&alives);
     }
 
-    fn sleep(fps: u64) {
-        sleep(Duration::from_millis(1000 / fps))
+    fn add_cell(&mut self, cell: Cell) {
+        self.game.matrix[cell.row()][cell.col()] = cell;
     }
 
     pub fn tick(&self) -> u64 {
