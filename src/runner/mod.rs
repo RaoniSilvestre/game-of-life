@@ -1,9 +1,11 @@
 use std::{thread::sleep, time::Duration};
 
-use tracing::{debug, info};
+use tracing::debug;
+
+mod run;
 
 use crate::{
-    configuration::{Configuration, Mode},
+    configuration::Configuration,
     conway::Cell,
     utils::random_generator,
     view::{BasicPainter, Paint},
@@ -16,6 +18,12 @@ pub struct Runner {
     pub config: Configuration,
 }
 
+#[derive(Debug)]
+enum RunnerEvent {
+    Tick,
+    Input((u16, u16)),
+}
+
 impl Runner {
     pub fn new(config: Configuration) -> Self {
         let game = ConwayGame::new(config.size);
@@ -24,13 +32,6 @@ impl Runner {
             game,
             painter,
             config,
-        }
-    }
-
-    pub fn run(&mut self) {
-        match self.config.mode {
-            Mode::Random => self.random_run(),
-            Mode::Test => self.testing_run(),
         }
     }
 
@@ -57,17 +58,7 @@ impl Runner {
         sleep(Duration::from_millis(1000 / fps))
     }
 
-    fn random_run(&mut self) {
-        self.start();
-        loop {
-            self.render();
-            Runner::sleep(self.config.fps);
-            self.update();
-        }
-    }
-
-    fn testing_run(&self) {
-        info!("Rodando em modo de teste!");
-        sleep(Duration::from_secs(10));
+    pub fn tick(&self) -> u64 {
+        self.config.fps
     }
 }

@@ -21,7 +21,7 @@ pub trait Paint {
 
 impl Default for BasicPainter {
     fn default() -> Self {
-        BasicPainter {
+        Self {
             terminal: Terminal::new(CrosstermBackend::new(io::stdout())).unwrap(),
         }
     }
