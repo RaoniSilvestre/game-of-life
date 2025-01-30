@@ -20,6 +20,14 @@ impl Cell {
         Cell { state, point }
     }
 
+    pub fn row(&self) -> usize {
+        self.point.row
+    }
+
+    pub fn col(&self) -> usize {
+        self.point.col
+    }
+
     pub fn update_state_factory(
         matrix_in: &[Vec<Cell>],
         size: Point,

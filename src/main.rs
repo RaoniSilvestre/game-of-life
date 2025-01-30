@@ -1,7 +1,8 @@
 use game_of_life::{Configuration, Runner};
 use tracing::debug;
 
-fn main() {
+#[tokio::main]
+async fn main() {
     tracing_subscriber::fmt()
         .with_max_level(tracing::Level::DEBUG)
         .compact()
@@ -15,5 +16,5 @@ fn main() {
 
     debug!("Runner inicializado");
 
-    runner.run();
+    runner.run().await;
 }
