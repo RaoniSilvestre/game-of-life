@@ -3,7 +3,10 @@
 ![GitHub repo size](https://img.shields.io/github/repo-size/RaoniSilvestre/game-of-life?style=for-the-badge)
 ![GitHub language count](https://img.shields.io/github/languages/count/RaoniSilvestre/game-of-life?style=for-the-badge)
 
-[Veja a demonstração do projeto](./demo/video.mp4)
+
+https://github.com/user-attachments/assets/276e1ab8-ee08-435f-a7e7-de248b5e04ef
+
+
 
 ## CLI Help
 
