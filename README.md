@@ -1,63 +1,20 @@
-# Game of life with websockets 
+# Conway's game of life
 
 ![GitHub repo size](https://img.shields.io/github/repo-size/RaoniSilvestre/game-of-life?style=for-the-badge)
 ![GitHub language count](https://img.shields.io/github/languages/count/RaoniSilvestre/game-of-life?style=for-the-badge)
 
-https://github.com/user-attachments/assets/0f92d505-9240-4420-b318-f29155d9ac05
-> Utilização de websockets para o servidor enviar o estado atual do jogo para os clientes conectados.
+[Veja a demonstração do projeto](./demo/video.mp4)
 
-### Ajustes e melhorias
-
-O projeto está num bom estado, mas caso eu ainda volte no futuro, os planos de melhoria são:
-
-- [ ] Adicionar estado inicial do jogo a partir de um arquivo
-- [ ] Permitir alteração do estado por meio do teclado enquanto o jogo funciona
-
-## 💻 Pré-requisitos
-
-Antes de começar, verifique se você atendeu aos seguintes requisitos:
-
-- Você instalou a versão mais recente do [rust](https://www.rust-lang.org/tools/install) . 
-- Você tem uma máquina linux. (Não testei em outros ambientes) 
-
-## Rodando o projeto
-
-Para rodar o projeto apenas localmente, rode o seguinte comando:
+## CLI Help
 
 ```
-cargo run --bin local
-```
+❯ cargo run -q -- --help
+Basic simulator for Conway's Game of Life
 
-Para rodar no modo de websocket, abra dois terminais, no primeiro, rode:
-
-```
-cargo run --bin client
-```
-
-E no segundo:
-
-```
-cargo run --bin server
-```
-
-
-## Parâmetros opcionais
-
-Esses parâmetros apenas funcionam nos binários local e server.
-
-```
-$ cargo run
-Usage: local [OPTIONS]
+Usage: game-of-life [OPTIONS]
 
 Options:
-  -m, --mode <MODE>          Modo de inicialização do jogo [default: random] [possible values: test, random]
-  -x, --dx <DX>              Tamanho do eixo X do jogo [default: 40]
-  -y, --dy <DY>              Tamanho do eixo Y do jogo [default: 20]
-  -f, --fps <FPS>            Frames por segundo [default: 1]
-  -r, --random <RANDOM>      Quantidade de bolinhas aleatórias, usado apenas no modo "random" [default: 200]
-  -c, --def-char <DEF_CHAR>  Caractere que apareçerá na tela como célula viva [default: #]
-  -d, --duration <DURATION>  Duração do jogo
-  -h, --help                 Print help (see more with '--help')
-  -V, --version              Print version
+  -f, --fps <FPS>  Frames per second [default: 1]
+  -h, --help       Print help
+  -V, --version    Print version
 ```
-

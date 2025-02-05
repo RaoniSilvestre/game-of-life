@@ -13,7 +13,6 @@ use tokio::{
     sync::mpsc::{self, Receiver},
     time,
 };
-use tracing::info;
 
 use crate::{
     conway::{Cell, State},
@@ -46,7 +45,6 @@ impl Runner {
         let tx_tick = event_tx.clone();
         let tick = self.tick();
 
-        info!("Habilitando modo raw!");
         enable_raw_mode().unwrap();
 
         execute!(io::stdout(), EnterAlternateScreen, EnableMouseCapture).unwrap();

@@ -1,5 +1,4 @@
 use game_of_life::{Configuration, Runner};
-use tracing::debug;
 
 #[tokio::main]
 async fn main() {
@@ -10,11 +9,7 @@ async fn main() {
 
     let config = Configuration::configure();
 
-    debug!("Configuração especificada: {:?}", config);
-
     let mut runner = Runner::new(config);
-
-    debug!("Runner inicializado");
 
     runner.run().await;
 }
