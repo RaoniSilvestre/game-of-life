@@ -28,6 +28,13 @@ impl Cell {
         self.point.col
     }
 
+    pub fn is_alive(&self) -> bool {
+        match self.state {
+            State::Alive => true,
+            State::Dead => false,
+        }
+    }
+
     pub fn update_state_factory(
         matrix_in: &[Vec<Cell>],
         size: Point,
@@ -46,23 +53,19 @@ impl Cell {
         let x = point.row % size.row;
         let y = point.col % size.col;
 
-        let actual_cell = matrix_in[x][y];
+        let current_cell = matrix_in[x][y];
+
         let alive_neighbours = Neighbour::alive_neighbours(matrix_in, point, size);
-        let new_state = match actual_cell.state {
-            State::Alive => {
-                if alive_neighbours == 2 || alive_neighbours == 3 {
-                    State::Alive
-                } else {
-                    State::Dead
-                }
-            }
-            State::Dead => {
-                if alive_neighbours == 3 {
-                    State::Alive
-                } else {
-                    State::Dead
-                }
-            }
+
+        let new_state = match current_cell.state {
+            State::Alive => match alive_neighbours {
+                2 | 3 => State::Alive,
+                _ => State::Dead,
+            },
+            State::Dead => match alive_neighbours {
+                3 => State::Alive,
+                _ => State::Dead,
+            },
         };
 
         matrix_out[point.row][point.col].state = new_state;

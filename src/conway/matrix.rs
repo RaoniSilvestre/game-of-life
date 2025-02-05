@@ -4,17 +4,24 @@ pub struct Matrix;
 
 impl Matrix {
     pub fn factory(size: Point) -> Vec<Vec<Cell>> {
-        let default_cell = Cell::default();
-        let (rows, cols) = (size.row, size.col);
-        let mut new_cell_matrix = vec![vec![default_cell; cols]; rows];
-
-        for (i, row) in new_cell_matrix.iter_mut().enumerate().take(rows) {
-            for (j, cell) in row.iter_mut().enumerate().take(cols) {
-                cell.point = Point { row: i, col: j }
-            }
-        }
+        let mut new_cell_matrix = Self::default((size.row, size.col));
 
         new_cell_matrix
+            .iter_mut()
+            .enumerate()
+            .for_each(Self::map_row);
+
+        new_cell_matrix
+    }
+
+    pub fn map_row((i, row): (usize, &mut Vec<Cell>)) {
+        row.iter_mut()
+            .enumerate()
+            .for_each(|(j, cell)| cell.point = Point { row: i, col: j });
+    }
+
+    fn default((row, col): (usize, usize)) -> Vec<Vec<Cell>> {
+        vec![vec![Cell::default(); col]; row]
     }
 }
 

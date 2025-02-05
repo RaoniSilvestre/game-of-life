@@ -12,7 +12,7 @@ use super::{Runner, RunnerEvent};
 impl Runner {
     pub async fn event_listener(tx: mpsc::Sender<RunnerEvent>) {
         loop {
-            if poll(Duration::from_millis(10)).unwrap() {
+            if poll(Duration::from_micros(10)).unwrap() {
                 Self::read_terminal_input(&tx).await;
             }
         }

@@ -1,6 +1,5 @@
 mod configuration;
 mod conway;
-mod network;
 mod runner;
 mod view;
 

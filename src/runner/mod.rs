@@ -4,14 +4,12 @@ mod run;
 use crate::{
     configuration::Configuration,
     conway::{Cell, Point},
-    view::{BasicPainter, Paint},
     ConwayGame,
 };
 
 #[derive(Debug)]
 pub struct Runner {
     pub game: ConwayGame,
-    pub painter: BasicPainter,
     pub config: Configuration,
     pub stop: bool,
 }
@@ -28,10 +26,9 @@ pub enum RunnerEvent {
 impl Runner {
     pub fn new(config: Configuration) -> Self {
         let game = ConwayGame::new(config.size);
-        let painter = BasicPainter::default();
+
         Runner {
             game,
-            painter,
             config,
             stop: true,
         }
@@ -47,11 +44,6 @@ impl Runner {
 
     fn state(&self) -> Vec<Cell> {
         ConwayGame::get_alive_cells(&self.game.matrix)
-    }
-
-    fn render(&mut self) {
-        let alives = self.state();
-        self.painter.paint(&alives);
     }
 
     fn add_cell(&mut self, cell: Cell) {
