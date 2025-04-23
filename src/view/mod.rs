@@ -1,3 +1,4 @@
+use anyhow::Context;
 use ratatui::prelude::CrosstermBackend;
 use ratatui::widgets::Block;
 use ratatui::widgets::Borders;
@@ -9,6 +10,7 @@ use std::io;
 use std::io::Stdout;
 
 use crate::conway::Cell;
+use crate::Res;
 
 #[derive(Debug)]
 pub struct BasicPainter {
@@ -16,19 +18,19 @@ pub struct BasicPainter {
 }
 
 pub trait Paint {
-    fn paint(&mut self, cells: &[Cell]);
+    fn paint(&mut self, cells: &[Cell]) -> Res<()>;
 }
 
-impl Default for BasicPainter {
-    fn default() -> Self {
-        Self {
-            terminal: Terminal::new(CrosstermBackend::new(io::stdout())).unwrap(),
-        }
+impl BasicPainter {
+    pub fn new() -> Res<Self> {
+        let terminal = Terminal::new(CrosstermBackend::new(io::stdout()))?;
+
+        Ok(Self { terminal })
     }
 }
 
 impl Paint for BasicPainter {
-    fn paint(&mut self, alive_cells: &[Cell]) {
+    fn paint(&mut self, alive_cells: &[Cell]) -> Res<()> {
         self.terminal
             .draw(|f| {
                 let size = f.area();
@@ -59,6 +61,8 @@ impl Paint for BasicPainter {
 
                 f.render_widget(paragraph, size);
             })
-            .unwrap();
+            .context("Erro ao pintar tela!")?;
+
+        Ok(())
     }
 }

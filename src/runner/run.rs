@@ -4,10 +4,11 @@ use std::{
     time::Duration,
 };
 
+use anyhow::{Context, Ok};
 use crossterm::{
     event::{DisableMouseCapture, EnableMouseCapture},
-    execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
+    ExecutableCommand,
 };
 use tokio::{
     sync::mpsc::{self, Receiver},
@@ -17,6 +18,7 @@ use tokio::{
 use crate::{
     conway::{Cell, State},
     view::{BasicPainter, Paint},
+    Res,
 };
 
 use super::{Runner, RunnerEvent};
@@ -26,31 +28,38 @@ pub enum Painting {
 }
 
 impl Runner {
-    pub async fn painter_handler(mut rx: Receiver<Painting>) {
-        let mut painter = BasicPainter::default();
+    pub async fn painter_handler(mut rx: Receiver<Painting>) -> Res<()> {
+        let mut painter = BasicPainter::new()?;
 
         while let Some(paint) = rx.recv().await {
             match paint {
                 Painting::Points(cells) => {
-                    painter.paint(&cells);
+                    painter.paint(&cells)?;
                 }
             }
         }
+
+        Ok(())
     }
 
-    pub async fn run(&mut self) {
+    pub async fn run(&mut self) -> Res<()> {
         let (event_tx, mut event_rx) = mpsc::channel::<RunnerEvent>(32);
         let (painter_tx, painter_rx) = mpsc::channel::<Painting>(32);
         let tx_input = event_tx.clone();
         let tx_tick = event_tx.clone();
         let tick = self.tick();
 
-        enable_raw_mode().unwrap();
+        enable_raw_mode().context("Falha ao habilitar raw mode")?;
 
-        execute!(io::stdout(), EnterAlternateScreen, EnableMouseCapture).unwrap();
+        let mut stdout = io::stdout();
+
+        stdout.execute(EnterAlternateScreen)?;
+        stdout.execute(EnableMouseCapture)?;
 
         tokio::spawn(async move {
-            Self::event_listener(tx_input).await;
+            if let Err(e) = Self::event_listener(tx_input).await {
+                eprintln!("Erro no event listener... {e}")
+            };
         });
 
         tokio::spawn(async move {
@@ -58,7 +67,9 @@ impl Runner {
         });
 
         tokio::spawn(async move {
-            Self::painter_handler(painter_rx).await;
+            if let Err(e) = Self::painter_handler(painter_rx).await {
+                eprintln!("Erro no paint handler... {e}")
+            }
         });
 
         self.start();
@@ -78,8 +89,9 @@ impl Runner {
                 }
                 RunnerEvent::ToggleRun => self.stop = !self.stop,
                 RunnerEvent::Quit => {
-                    disable_raw_mode().unwrap();
-                    execute!(io::stdout(), LeaveAlternateScreen, DisableMouseCapture).unwrap();
+                    disable_raw_mode().context("Falha ao desabilitar raw mode")?;
+                    stdout.execute(LeaveAlternateScreen)?;
+                    stdout.execute(DisableMouseCapture)?;
                     exit(0);
                 }
             }
@@ -87,8 +99,10 @@ impl Runner {
             painter_tx
                 .send(Painting::Points(self.state()))
                 .await
-                .unwrap();
+                .context("Falha ao enviar estado atual para pintar")?;
         }
+
+        Ok(())
     }
 
     async fn tick_waiter(tx: mpsc::Sender<RunnerEvent>, tick: u64) {

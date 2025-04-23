@@ -5,21 +5,21 @@ use crossterm::event::{
 };
 use tokio::sync::mpsc;
 
-use crate::conway::Point;
+use crate::{conway::Point, Res};
 
 use super::{Runner, RunnerEvent};
 
 impl Runner {
-    pub async fn event_listener(tx: mpsc::Sender<RunnerEvent>) {
+    pub async fn event_listener(tx: mpsc::Sender<RunnerEvent>) -> Res<()> {
         loop {
-            if poll(Duration::from_micros(10)).unwrap() {
-                Self::read_terminal_input(&tx).await;
+            if poll(Duration::from_micros(10))? {
+                Self::read_terminal_input(&tx).await?;
             }
         }
     }
 
-    async fn read_terminal_input(tx: &mpsc::Sender<RunnerEvent>) {
-        match read().expect("Erro ao ler input do terminal") {
+    async fn read_terminal_input(tx: &mpsc::Sender<RunnerEvent>) -> Res<()> {
+        match read()? {
             Event::Mouse(e) => Self::mouse_event_handler(tx, e).await,
             Event::Key(e) => Self::keyboard_event_handler(tx, e).await,
             Event::FocusGained => todo!(),
@@ -29,7 +29,7 @@ impl Runner {
         }
     }
 
-    async fn mouse_event_handler(tx: &mpsc::Sender<RunnerEvent>, event: MouseEvent) {
+    async fn mouse_event_handler(tx: &mpsc::Sender<RunnerEvent>, event: MouseEvent) -> Res<()> {
         match event.kind {
             MouseEventKind::Down(mouse_button) => {
                 let point = Point::new(event.row.into(), event.column.into());
@@ -38,12 +38,16 @@ impl Runner {
                     MouseButton::Left | MouseButton::Middle => {
                         let runner_event = RunnerEvent::Revive(point);
 
-                        let _ = tx.send(runner_event).await;
+                        tx.send(runner_event).await?;
+
+                        Ok(())
                     }
                     MouseButton::Right => {
                         let runner_event = RunnerEvent::Kill(point);
 
-                        let _ = tx.send(runner_event).await;
+                        tx.send(runner_event).await?;
+
+                        Ok(())
                     }
                 }
             }
@@ -54,24 +58,28 @@ impl Runner {
                     MouseButton::Left | MouseButton::Middle => {
                         let runner_event = RunnerEvent::Revive(point);
 
-                        tx.send(runner_event).await.unwrap();
+                        tx.send(runner_event).await?;
+
+                        Ok(())
                     }
                     MouseButton::Right => {
                         let runner_event = RunnerEvent::Kill(point);
 
-                        tx.send(runner_event).await.unwrap();
+                        tx.send(runner_event).await?;
+
+                        Ok(())
                     }
                 }
             }
-            _ => {}
+            _ => Ok(()),
         }
     }
 
-    async fn keyboard_event_handler(tx: &mpsc::Sender<RunnerEvent>, event: KeyEvent) {
+    async fn keyboard_event_handler(tx: &mpsc::Sender<RunnerEvent>, event: KeyEvent) -> Res<()> {
         match event.code {
-            KeyCode::Enter => tx.send(RunnerEvent::ToggleRun).await.unwrap(),
-            KeyCode::Char('q') => tx.send(RunnerEvent::Quit).await.unwrap(),
-            _ => {}
+            KeyCode::Enter => Ok(tx.send(RunnerEvent::ToggleRun).await?),
+            KeyCode::Char('q') => Ok(tx.send(RunnerEvent::Quit).await?),
+            _ => Ok(()),
         }
     }
 }
