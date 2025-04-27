@@ -1,17 +1,44 @@
 mod event_listener;
+mod painter;
 mod run;
+mod tick;
+
+use run::Painting;
+use tokio::sync::mpsc::{Receiver, Sender};
 
 use crate::{
     configuration::Configuration,
     conway::{Cell, Point},
+    view::BasicPainter,
     ConwayGame,
 };
 
 #[derive(Debug)]
+pub struct EventListener(Sender<RunnerEvent>);
+
+#[derive(Debug)]
+pub struct TickWaiter {
+    tx: Sender<RunnerEvent>,
+    tick: u64,
+}
+
+#[derive(Debug)]
+pub struct PaintHandler {
+    rx: Receiver<Painting>,
+    painter: BasicPainter,
+}
+
+#[derive(Debug)]
 pub struct Runner {
-    pub game: ConwayGame,
-    pub config: Configuration,
-    pub stop: bool,
+    game: ConwayGame,
+    config: Configuration,
+    stop: bool,
+}
+
+#[derive(Debug)]
+pub struct RunnerChannels {
+    event_rx: Receiver<RunnerEvent>,
+    painter_tx: Sender<Painting>,
 }
 
 #[derive(Debug)]
@@ -21,6 +48,13 @@ pub enum RunnerEvent {
     Kill(Point),
     ToggleRun,
     Quit,
+}
+
+struct RunnerStructs {
+    event_listener: EventListener,
+    tick_waiter: TickWaiter,
+    painter: PaintHandler,
+    channels: RunnerChannels,
 }
 
 impl Runner {

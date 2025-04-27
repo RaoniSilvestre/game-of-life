@@ -1,7 +1,6 @@
 use std::{
     io::{self},
     process::exit,
-    time::Duration,
 };
 
 use anyhow::{Context, Ok};
@@ -10,44 +9,29 @@ use crossterm::{
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
     ExecutableCommand,
 };
-use tokio::{
-    sync::mpsc::{self, Receiver},
-    time,
-};
+use tokio::sync::mpsc::channel;
 
 use crate::{
     conway::{Cell, State},
-    view::{BasicPainter, Paint},
     Res,
 };
 
-use super::{Runner, RunnerEvent};
+use super::{
+    EventListener, PaintHandler, Runner, RunnerChannels, RunnerEvent, RunnerStructs, TickWaiter,
+};
 
 pub enum Painting {
     Points(Vec<Cell>),
 }
 
 impl Runner {
-    pub async fn painter_handler(mut rx: Receiver<Painting>) -> Res<()> {
-        let mut painter = BasicPainter::new()?;
-
-        while let Some(paint) = rx.recv().await {
-            match paint {
-                Painting::Points(cells) => {
-                    painter.paint(&cells)?;
-                }
-            }
-        }
-
-        Ok(())
-    }
-
     pub async fn run(&mut self) -> Res<()> {
-        let (event_tx, mut event_rx) = mpsc::channel::<RunnerEvent>(32);
-        let (painter_tx, painter_rx) = mpsc::channel::<Painting>(32);
-        let tx_input = event_tx.clone();
-        let tx_tick = event_tx.clone();
-        let tick = self.tick();
+        let RunnerStructs {
+            event_listener,
+            tick_waiter,
+            mut painter,
+            mut channels,
+        } = self.get_structs()?;
 
         enable_raw_mode().context("Falha ao habilitar raw mode")?;
 
@@ -57,36 +41,29 @@ impl Runner {
         stdout.execute(EnableMouseCapture)?;
 
         tokio::spawn(async move {
-            if let Err(e) = Self::event_listener(tx_input).await {
+            if let Err(e) = event_listener.listen().await {
                 eprintln!("Erro no event listener... {e}")
-            };
+            }
         });
 
         tokio::spawn(async move {
-            Self::tick_waiter(tx_tick, tick).await;
+            tick_waiter.tick().await;
         });
 
         tokio::spawn(async move {
-            if let Err(e) = Self::painter_handler(painter_rx).await {
+            if let Err(e) = painter.paint().await {
                 eprintln!("Erro no paint handler... {e}")
             }
         });
 
         self.start();
 
-        while let Some(event) = event_rx.recv().await {
+        while let Some(event) = channels.event_rx.recv().await {
             match event {
-                RunnerEvent::Tick => {
-                    if !self.stop {
-                        self.update();
-                    }
-                }
-                RunnerEvent::Revive(p) => {
-                    self.add_cell(Cell::new(p, State::Alive));
-                }
-                RunnerEvent::Kill(p) => {
-                    self.add_cell(Cell::new(p, State::Dead));
-                }
+                RunnerEvent::Tick if self.stop => (),
+                RunnerEvent::Tick => self.update(),
+                RunnerEvent::Revive(p) => self.add_cell(Cell::new(p, State::Alive)),
+                RunnerEvent::Kill(p) => self.add_cell(Cell::new(p, State::Dead)),
                 RunnerEvent::ToggleRun => self.stop = !self.stop,
                 RunnerEvent::Quit => {
                     disable_raw_mode().context("Falha ao desabilitar raw mode")?;
@@ -96,7 +73,8 @@ impl Runner {
                 }
             }
 
-            painter_tx
+            channels
+                .painter_tx
                 .send(Painting::Points(self.state()))
                 .await
                 .context("Falha ao enviar estado atual para pintar")?;
@@ -105,14 +83,27 @@ impl Runner {
         Ok(())
     }
 
-    async fn tick_waiter(tx: mpsc::Sender<RunnerEvent>, tick: u64) {
-        let mut interval = time::interval(Duration::from_micros(1000000 / tick));
+    fn get_structs(&self) -> Res<RunnerStructs> {
+        let (event_tx, event_rx) = channel::<RunnerEvent>(32);
+        let (painter_tx, painter_rx) = channel::<Painting>(32);
+        let tx_input = event_tx.clone();
+        let tx_tick = event_tx.clone();
+        let tick = self.config.fps;
 
-        loop {
-            interval.tick().await;
-            tx.send(RunnerEvent::Tick)
-                .await
-                .expect("Não foi possível enviar mensagem de tick");
-        }
+        let event_listener = EventListener::new(tx_input);
+        let painter = PaintHandler::new(painter_rx)?;
+        let tick_waiter = TickWaiter::new(tx_tick, tick);
+
+        let channels = RunnerChannels {
+            painter_tx,
+            event_rx,
+        };
+
+        Ok(RunnerStructs {
+            event_listener,
+            tick_waiter,
+            painter,
+            channels,
+        })
     }
 }
