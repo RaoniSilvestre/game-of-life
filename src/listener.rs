@@ -55,7 +55,7 @@ impl EventListener {
                         Ok(())
                     }
                     MouseButton::Right => {
-                        let runner_event = RunnerEvent::Kill(point);
+                        let runner_event = RunnerEvent::AddAround(point);
                         tx.send(runner_event)?;
                         Ok(())
                     }
@@ -71,7 +71,7 @@ impl EventListener {
                         Ok(())
                     }
                     MouseButton::Right => {
-                        let runner_event = RunnerEvent::Kill(point);
+                        let runner_event = RunnerEvent::AddAround(point);
                         tx.send(runner_event)?;
                         Ok(())
                     }

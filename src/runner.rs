@@ -42,7 +42,7 @@ pub struct RunnerChannels {
 pub enum RunnerEvent {
     Tick,
     Revive(Point),
-    Kill(Point),
+    AddAround(Point),
     ToggleRun,
     Quit,
 }
@@ -109,7 +109,7 @@ impl Runner {
                 RunnerEvent::Tick if self.stop => (),
                 RunnerEvent::Tick => self.game.update(),
                 RunnerEvent::Revive(p) => self.game.add(p),
-                RunnerEvent::Kill(p) => self.game.remove(p),
+                RunnerEvent::AddAround(p) => self.game.add_around(p),
                 RunnerEvent::ToggleRun => self.stop = !self.stop,
                 RunnerEvent::Quit => {
                     disable_raw_mode().context("Falha ao desabilitar raw mode")?;

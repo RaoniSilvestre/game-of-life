@@ -1,5 +1,7 @@
 use std::collections::HashSet;
 
+use rand::seq::IndexedRandom;
+
 pub type Point = (i32, i32);
 pub type GameState = HashSet<Point>;
 
@@ -20,6 +22,27 @@ impl ConwayGame {
 
     pub fn state(&self) -> GameState {
         self.alives.clone()
+    }
+
+    pub fn add_around(&mut self, (a, b): Point) {
+        let x_min = a - 4;
+        let x_max = a + 3;
+        let y_min = b - 4;
+        let y_max = b + 3;
+
+        let mut possible_points: Vec<Point> = Vec::with_capacity(64);
+        for x in x_min..=x_max {
+            for y in y_min..=y_max {
+                possible_points.push((x, y));
+            }
+        }
+
+        let mut rng = rand::rng();
+        let chosen_points = possible_points.as_slice().choose_multiple(&mut rng, 16);
+
+        for point in chosen_points {
+            self.add(*point);
+        }
     }
 
     pub fn update(&mut self) {
