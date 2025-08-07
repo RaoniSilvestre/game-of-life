@@ -9,7 +9,7 @@ use ratatui::prelude::*;
 use std::io;
 use std::io::Stdout;
 
-use crate::conway::Cell;
+use crate::game::GameState;
 use crate::Res;
 
 #[derive(Debug)]
@@ -18,7 +18,7 @@ pub struct BasicPainter {
 }
 
 pub trait Paint {
-    fn paint(&mut self, cells: &[Cell]) -> Res<()>;
+    fn paint(&mut self, cells: GameState) -> Res<()>;
 }
 
 impl BasicPainter {
@@ -30,7 +30,7 @@ impl BasicPainter {
 }
 
 impl Paint for BasicPainter {
-    fn paint(&mut self, alive_cells: &[Cell]) -> Res<()> {
+    fn paint(&mut self, cells: GameState) -> Res<()> {
         self.terminal
             .draw(|f| {
                 let size = f.area();
@@ -39,9 +39,14 @@ impl Paint for BasicPainter {
 
                 let mut buffer = vec![vec![' '; size.width as usize]; size.height as usize];
 
-                alive_cells.iter().for_each(|cell| {
-                    if cell.row() < size.height as usize && cell.col() < size.width as usize {
-                        buffer[cell.row()][cell.col()] = cell_char;
+                cells.iter().for_each(|(row, col)| {
+                    let is_within_screen = *row < size.height.into()
+                        && *col < size.width.into()
+                        && *row >= 0
+                        && *col >= 0;
+
+                    if is_within_screen {
+                        buffer[*row as usize][*col as usize] = cell_char;
                     }
                 });
 
@@ -56,7 +61,8 @@ impl Paint for BasicPainter {
                     .block(
                         Block::default()
                             .borders(Borders::ALL)
-                            .title("Conway's game"),
+                            .title_top("Conway's game")
+                            .title_bottom(format!(" Alive Cells: {} ", cells.len())),
                     );
 
                 f.render_widget(paragraph, size);

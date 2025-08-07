@@ -1,11 +1,12 @@
-mod configuration;
-mod conway;
+mod config;
+mod game;
+mod listener;
 mod runner;
 mod view;
 
 use anyhow::Error;
-pub use configuration::Configuration;
-pub use conway::ConwayGame;
+
+pub use config::Configuration;
 pub use runner::Runner;
 
 pub type Res<T> = Result<T, Error>;
