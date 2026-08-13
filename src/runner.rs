@@ -1,76 +1,77 @@
+use crate::{
+    Configuration, Res,
+    automaton::{Automaton, Conway, Point, Snapshot},
+    listener::{EventListener, Tick},
+    view::BasicPainter,
+};
+use anyhow::{Context, anyhow, bail};
+use crossterm::{
+    ExecutableCommand,
+    event::{DisableMouseCapture, EnableMouseCapture},
+    terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
+};
+use ratatui::prelude::Color;
 use std::{
     io::{self},
     process::exit,
-    sync::mpsc::{sync_channel, Receiver, SyncSender},
+    sync::mpsc::{Receiver, SyncSender, sync_channel},
     thread,
 };
 
-use anyhow::{Context, Ok};
-use crossterm::{
-    event::{DisableMouseCapture, EnableMouseCapture},
-    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
-    ExecutableCommand,
-};
-
-use crate::{
-    game::{ConwayGame, GameState, Point},
-    listener::{EventListener, Tick},
-    view::{BasicPainter, Paint},
-    Configuration, Res,
-};
+pub fn run_with_scene(config: Configuration) -> Res<()> {
+    match config.scene.automaton.as_str() {
+        "conway" => Runner::<Conway>::new(config)?.run(),
+        other => bail!("autômato desconhecido: {other}"),
+    }
+}
 
 #[derive(Debug)]
-pub struct Runner {
-    game: ConwayGame,
+pub struct Runner<A: Automaton> {
+    automaton: A,
     config: Configuration,
     stop: bool,
 }
 
 #[derive(Debug)]
-pub struct PaintHandler {
-    rx: Receiver<GameState>,
+pub struct PaintHandler<C> {
+    rx: Receiver<Snapshot<C>>,
     painter: BasicPainter,
 }
 
 #[derive(Debug)]
-pub struct RunnerChannels {
+pub struct RunnerChannels<C> {
     event_rx: Receiver<RunnerEvent>,
-    painter_tx: SyncSender<GameState>,
+    painter_tx: SyncSender<Snapshot<C>>,
 }
 
 #[derive(Debug)]
 pub enum RunnerEvent {
     Tick,
-    Revive(Point),
-    AddAround(Point),
+    PaintLeft(Point),
+    PaintRight(Point),
     ToggleRun,
     Quit,
 }
 
-struct RunnerStructs {
+struct RunnerStructs<C> {
     event_listener: EventListener,
     tick_waiter: Tick,
-    painter: PaintHandler,
-    channels: RunnerChannels,
+    painter: PaintHandler<C>,
+    channels: RunnerChannels<C>,
 }
 
-impl Runner {
-    pub fn new(config: Configuration) -> Self {
-        let game = ConwayGame::default();
+impl<A: Automaton> Runner<A> {
+    pub fn new(config: Configuration) -> Res<Self> {
+        let scene = &config.scene;
+        let automaton = A::from_rows(scene.width, scene.height, &scene.initial)?;
 
-        Runner {
-            game,
+        Ok(Self {
+            automaton,
             config,
             stop: true,
-        }
+        })
     }
 
-    pub fn tick(&self) -> u64 {
-        self.config.fps
-    }
-}
-
-impl Runner {
     pub fn run(&mut self) -> Res<()> {
         let RunnerStructs {
             event_listener,
@@ -107,9 +108,15 @@ impl Runner {
 
             match event {
                 RunnerEvent::Tick if self.stop => (),
-                RunnerEvent::Tick => self.game.update(),
-                RunnerEvent::Revive(p) => self.game.add(p),
-                RunnerEvent::AddAround(p) => self.game.add_around(p),
+                RunnerEvent::Tick => self.automaton.step(),
+                RunnerEvent::PaintLeft(point) => {
+                    let (x, y) = self.screen_to_grid(point);
+                    self.automaton.paint_left(x, y);
+                }
+                RunnerEvent::PaintRight(point) => {
+                    let (x, y) = self.screen_to_grid(point);
+                    self.automaton.paint_right(x, y);
+                }
                 RunnerEvent::ToggleRun => self.stop = !self.stop,
                 RunnerEvent::Quit => {
                     disable_raw_mode().context("Falha ao desabilitar raw mode")?;
@@ -119,16 +126,27 @@ impl Runner {
                 }
             }
 
+            let snapshot = Snapshot {
+                name: A::name().to_string(),
+                iterations: self.automaton.iterations(),
+                board: self.automaton.board().clone(),
+            };
+
             channels
                 .painter_tx
-                .send(self.game.state())
-                .context("Falha ao enviar estado atual para pintar")?;
+                .send(snapshot)
+                .map_err(|e| anyhow!("Falha ao enviar snapshot: {e}"))?;
         }
     }
 
-    fn get_structs(&self) -> Res<RunnerStructs> {
+    fn screen_to_grid(&self, (row, col): Point) -> Point {
+        const BORDER: i32 = 1;
+        (row - BORDER, col - BORDER)
+    }
+
+    fn get_structs(&self) -> Res<RunnerStructs<A::Cell>> {
         let (event_tx, event_rx) = sync_channel::<RunnerEvent>(32);
-        let (painter_tx, painter_rx) = sync_channel::<GameState>(32);
+        let (painter_tx, painter_rx) = sync_channel::<Snapshot<A::Cell>>(32);
         let tx_input = event_tx.clone();
         let tx_tick = event_tx.clone();
         let tick = self.config.fps;
@@ -151,16 +169,16 @@ impl Runner {
     }
 }
 
-impl PaintHandler {
-    pub fn new(rx: Receiver<GameState>) -> Res<Self> {
+impl<C: Into<Color> + Copy + PartialEq + Default> PaintHandler<C> {
+    pub fn new(rx: Receiver<Snapshot<C>>) -> Res<Self> {
         let painter = BasicPainter::new()?;
         Ok(Self { rx, painter })
     }
 
     pub fn paint(&mut self) -> Res<()> {
         loop {
-            let cells = self.rx.recv()?;
-            self.painter.paint(cells)?
+            let snapshot = self.rx.recv()?;
+            self.painter.paint(&snapshot)?
         }
     }
 }

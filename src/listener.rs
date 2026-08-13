@@ -45,37 +45,16 @@ impl EventListener {
         let tx = &self.0;
 
         match event.kind {
-            MouseEventKind::Down(mouse_button) => {
+            MouseEventKind::Down(mouse_button) | MouseEventKind::Drag(mouse_button) => {
                 let point = (event.row.into(), event.column.into());
 
-                match mouse_button {
-                    MouseButton::Left | MouseButton::Middle => {
-                        let runner_event = RunnerEvent::Revive(point);
-                        tx.send(runner_event)?;
-                        Ok(())
-                    }
-                    MouseButton::Right => {
-                        let runner_event = RunnerEvent::AddAround(point);
-                        tx.send(runner_event)?;
-                        Ok(())
-                    }
-                }
-            }
-            MouseEventKind::Drag(mouse_button) => {
-                let point = (event.row.into(), event.column.into());
+                let runner_event = match mouse_button {
+                    MouseButton::Left | MouseButton::Middle => RunnerEvent::PaintLeft(point),
+                    MouseButton::Right => RunnerEvent::PaintRight(point),
+                };
 
-                match mouse_button {
-                    MouseButton::Left | MouseButton::Middle => {
-                        let runner_event = RunnerEvent::Revive(point);
-                        tx.send(runner_event)?;
-                        Ok(())
-                    }
-                    MouseButton::Right => {
-                        let runner_event = RunnerEvent::AddAround(point);
-                        tx.send(runner_event)?;
-                        Ok(())
-                    }
-                }
+                tx.send(runner_event)?;
+                Ok(())
             }
             _ => Ok(()),
         }

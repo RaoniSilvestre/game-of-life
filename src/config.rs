@@ -1,23 +1,33 @@
 use clap::Parser;
 
-/// Basic simulator for Conway's Game of Life.
+use crate::scene::Scene;
+use crate::Res;
+
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 pub struct Cli {
-    /// Frames per second
-    #[arg(short, long, default_value_t = 1)]
-    pub fps: u64,
+    /// Frames per second (overrides the scene)
+    #[arg(short, long)]
+    pub fps: Option<u64>,
+
+    /// Path to the scene file
+    #[arg(long, default_value = "scenes/conway.toml")]
+    pub scene: String,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct Configuration {
     pub fps: u64,
+    pub scene: Scene,
 }
 
 impl Configuration {
-    pub fn configure() -> Configuration {
+    pub fn configure() -> Res<Configuration> {
         let cli = Cli::parse();
 
-        Configuration { fps: cli.fps }
+        let scene = Scene::from_path(&cli.scene)?;
+        let fps = cli.fps.or(scene.fps).unwrap_or(1);
+
+        Ok(Configuration { fps, scene })
     }
 }

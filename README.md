@@ -6,14 +6,17 @@
 
 https://github.com/user-attachments/assets/276e1ab8-ee08-435f-a7e7-de248b5e04ef
 
-A simple and interactive terminal-based version of Conway's Game of Life, written in Rust!
-Customize the speed, draw your initial cells, and watch how the simulation evolves.
+A simple and interactive terminal-based cellular automaton simulator.
+It ships with Conway's Game of Life, with a generic engine: any cellular automaton
+can be added by implementing a single trait, and each simulation is driven by a scene
+file (TOML) that defines the grid, initial state and speed.
 
 ## Controls
 
 | Key/Action | Effect |
 |:---|:---|
-| Left Mouse Button | Toggle cell state (alive/dead) |
+| Left Mouse Button | Toggle cell state (left button action) |
+| Right Mouse Button | Secondary action (Conway: scatter 16 random cells) |
 | Enter | Start or pause the simulation |
 | q | Quit the game |
 
@@ -23,9 +26,7 @@ You can run the project either with Cargo or inside a Docker container.
 
 ### Running with Cargo
 
-> ⚡ Note: The first build might take a few minutes as it downloads and compiles all dependencies.
-
-Make sure you have Rust installed: https://www.rust-lang.org/tools/install
+Install rust and cargo: https://www.rust-lang.org/tools/install
 
 ```rust 
 cargo run --release -q
@@ -35,11 +36,10 @@ You can also pass options:
 
 ```rust 
 cargo run -q -- -f 10
+cargo run -q -- --scene scenes/conway.toml
 ```
 
 ### Running with Docker
-
-> ⚡ Note: The first Docker build can take a few minutes too, due to Rust compilation.
 
 First, build the image:
 
@@ -63,19 +63,63 @@ docker run -it game-of-life -f 10
 
 ```
 ❯ cargo run -q -- --help
-Basic simulator for Conway's Game of Life
-
 Usage: game-of-life [OPTIONS]
 
 Options:
-  -f, --fps <FPS>  Frames per second [default: 1]
-  -h, --help       Print help
-  -V, --version    Print version
+  -f, --fps <FPS>      Frames per second (overrides the scene)
+      --scene <SCENE>  Path to the scene file [default: scenes/conway.toml]
+  -h, --help           Print help
+  -V, --version        Print version
 ```
+
+## Scene files
+
+Each simulation is defined by a TOML scene file:
+
+```toml
+name = "Conway's Game of Life"   # title shown on screen
+automaton = "conway"             # which automaton to run (see below)
+width = 40                       # grid width in cells
+height = 20                      # grid height in cells
+fps = 1                          # optional; CLI --fps overrides this
+
+initial = [                      # optional; each char becomes a cell
+    "....X...",
+    "...XXX..",
+]
+```
+
+Cells are interpreted by each automaton. For Conway, `X`/`x`/`█`/`O` mean "alive" and
+anything else (usually `.`) means "dead". An empty `initial` starts with a blank grid
+so you can draw with the mouse.
+
+## Adding a new automaton
+
+Implement the `Automaton` trait (`src/automaton.rs`) and register it in
+`run_with_scene` (`src/runner.rs`):
+
+```rust
+pub trait Automaton {
+    type Cell: Into<Color> + Copy + Default + PartialEq + Send + 'static;
+
+    fn name() -> &'static str;
+    fn new(width: usize, height: usize) -> Self;
+    fn from_rows(width: usize, height: usize, rows: &[String]) -> Res<Self>;
+    fn board(&self) -> &Board<Self::Cell>;
+    fn step(&mut self);
+    fn paint_left(&mut self, x: i32, y: i32);   // default: no-op
+    fn paint_right(&mut self, x: i32, y: i32);  // default: no-op
+    fn iterations(&self) -> usize;
+}
+```
+
+The associated `Cell` type is the automaton's own state enum — support for N states
+comes from the type itself, and coloring is defined by each automaton via
+`impl From<Cell> for Color`. That is what makes disease, fire and other multi-state
+simulations possible without any changes to the engine.
 
 ## About the project
 
 This project is a fun exploration of terminal graphics and event handling using Rust.
 It focuses on a smooth user experience with real-time interaction and a simple CLI interface.
 
-Contributions, feedback, and ideas are very welcome! 🚀
