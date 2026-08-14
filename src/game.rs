@@ -20,7 +20,7 @@ impl ConwayGame {
         self.alives.clone()
     }
 
-    pub fn add_around(&mut self, (a, b): Point) {
+    pub fn scatter(&mut self, (a, b): Point) {
         let x_min = a - 4;
         let x_max = a + 3;
         let y_min = b - 4;
@@ -136,7 +136,7 @@ mod tests {
     fn test_add_around() {
         let mut game = ConwayGame::default();
         let center_point = (10, 10);
-        game.add_around(center_point);
+        game.scatter(center_point);
 
         // 1. Verifica se exatamente 16 células foram adicionadas
         assert_eq!(
