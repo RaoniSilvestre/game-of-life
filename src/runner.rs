@@ -1,11 +1,12 @@
-use std::{sync::mpsc::sync_channel, thread};
+use std::{io::stdout, sync::mpsc::sync_channel, thread};
 
 use anyhow::Context;
+use crossterm::{event::EnableMouseCapture, execute};
 
 use crate::{
-    game::{ConwayGame, GameState, Point},
+    automaton::{Automaton, Conway, ConwayCell, Point},
     listener::{self},
-    view::{self},
+    view::{self, Snapshot},
     Configuration, Res,
 };
 
@@ -20,14 +21,14 @@ pub enum RunnerEvent {
 
 #[derive(Debug)]
 pub struct Runner {
-    game: ConwayGame,
+    game: Conway,
     config: Configuration,
     stop: bool,
 }
 
 impl Runner {
     pub fn new(config: Configuration) -> Self {
-        let game = ConwayGame::default();
+        let game = Conway::new(80, 40);
 
         Runner {
             game,
@@ -38,9 +39,13 @@ impl Runner {
 
     pub fn run(&mut self) -> Res<()> {
         let (event_tx, event_rx) = sync_channel::<RunnerEvent>(32);
-        let (painter_tx, painter_rx) = sync_channel::<GameState>(32);
+        let (painter_tx, painter_rx) = sync_channel::<Snapshot<ConwayCell>>(32);
 
         let tick_rate = self.config.fps;
+
+        let mut terminal = ratatui::init();
+        execute!(stdout(), EnableMouseCapture)?;
+        terminal.clear()?;
 
         // Input thread
         thread::spawn(move || {
@@ -52,7 +57,7 @@ impl Runner {
 
         // Output thread
         thread::spawn(|| {
-            if let Err(e) = view::listen(painter_rx) {
+            if let Err(e) = view::listen(terminal, painter_rx) {
                 eprintln!("Erro no view listener... {e}");
                 view::quit();
             }
@@ -64,15 +69,19 @@ impl Runner {
 
             match event {
                 RunnerEvent::Tick if self.stop => (),
-                RunnerEvent::Tick => self.game.update(),
-                RunnerEvent::Revive(p) => self.game.add(p),
-                RunnerEvent::AddAround(p) => self.game.scatter(p),
+                RunnerEvent::Tick => self.game.step(),
+                RunnerEvent::Revive(p) => self.game.paint_left(p),
+                RunnerEvent::AddAround(p) => self.game.paint_right(p),
                 RunnerEvent::ToggleRun => self.stop = !self.stop,
                 RunnerEvent::Quit => view::quit(),
             }
 
             painter_tx
-                .send(self.game.state())
+                .send(Snapshot {
+                    name: Conway::name().to_string(),
+                    iterations: self.game.iterations(),
+                    board: self.game.board().clone(),
+                })
                 .context("Falha ao enviar estado atual para pintar")?;
         }
     }

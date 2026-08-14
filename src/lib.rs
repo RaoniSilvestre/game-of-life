@@ -1,5 +1,5 @@
+mod automaton;
 mod config;
-mod game;
 mod listener;
 mod runner;
 mod view;
