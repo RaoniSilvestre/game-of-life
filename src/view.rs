@@ -1,18 +1,53 @@
 use anyhow::Context;
+use crossterm::event::{DisableMouseCapture, EnableMouseCapture};
+use crossterm::execute;
 use ratatui::prelude::*;
 use ratatui::widgets::{Block, Borders, Widget};
-use std::io::{self, Stdout};
+use std::io::{stdout, Stdout};
+use std::sync::mpsc::Receiver;
 
 use crate::game::GameState;
 use crate::Res;
 
-#[derive(Debug)]
-pub struct BasicPainter {
-    terminal: Terminal<CrosstermBackend<Stdout>>,
+pub fn listen(rx: Receiver<GameState>) -> Res<()> {
+    let mut terminal = ratatui::init();
+    execute!(stdout(), EnableMouseCapture)?;
+
+    terminal.clear()?;
+
+    loop {
+        let cells = rx.recv()?;
+        paint(&mut terminal, cells)?
+    }
 }
 
-pub trait Paint {
-    fn paint(&mut self, cells: GameState) -> Res<()>;
+pub fn quit() {
+    execute!(stdout(), DisableMouseCapture).unwrap();
+    ratatui::restore();
+    std::process::exit(0)
+}
+
+fn paint(terminal: &mut Terminal<CrosstermBackend<Stdout>>, cells: GameState) -> Res<()> {
+    terminal
+        .draw(|f| {
+            let size = f.area();
+
+            let block = Block::default()
+                .borders(Borders::ALL)
+                .title_top("Conway's game")
+                .title_bottom(format!(" Alive Cells: {} ", cells.len()));
+
+            let inner_area = block.inner(size);
+
+            f.render_widget(block, size);
+
+            let cells_widget = CellsWidget { cells: &cells };
+
+            f.render_widget(cells_widget, inner_area);
+        })
+        .context("Erro ao pintar tela!")?;
+
+    Ok(())
 }
 
 struct CellsWidget<'a> {
@@ -33,37 +68,5 @@ impl Widget for CellsWidget<'_> {
                 }
             }
         }
-    }
-}
-
-impl BasicPainter {
-    pub fn new() -> Res<Self> {
-        let terminal = Terminal::new(CrosstermBackend::new(io::stdout()))?;
-        Ok(Self { terminal })
-    }
-}
-
-impl Paint for BasicPainter {
-    fn paint(&mut self, cells: GameState) -> Res<()> {
-        self.terminal
-            .draw(|f| {
-                let size = f.area();
-
-                let block = Block::default()
-                    .borders(Borders::ALL)
-                    .title_top("Conway's game")
-                    .title_bottom(format!(" Alive Cells: {} ", cells.len()));
-
-                let inner_area = block.inner(size);
-
-                f.render_widget(block, size);
-
-                let cells_widget = CellsWidget { cells: &cells };
-
-                f.render_widget(cells_widget, inner_area);
-            })
-            .context("Erro ao pintar tela!")?;
-
-        Ok(())
     }
 }
