@@ -3,10 +3,10 @@ use ratatui::prelude::Color;
 
 mod conway;
 
-pub use conway::{Conway, ConwayCell};
+pub use conway::Conway;
 
 pub trait Automaton: Sized {
-    type Cell: Into<Color> + Copy + Default + PartialEq + Send + 'static;
+    type Cell: Into<Color> + Copy + Default + PartialEq + Send + 'static + Sync;
 
     fn name() -> &'static str;
     fn new(width: usize, height: usize) -> Self;

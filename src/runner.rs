@@ -1,10 +1,9 @@
 use std::{io::stdout, sync::mpsc::sync_channel, thread};
 
-use anyhow::Context;
 use crossterm::{event::EnableMouseCapture, execute};
 
 use crate::{
-    automaton::{Automaton, Conway, ConwayCell, Point},
+    automaton::{Automaton, Conway, Point},
     listener::{self},
     view::{self, Snapshot},
     Configuration, Res,
@@ -20,18 +19,16 @@ pub enum RunnerEvent {
 }
 
 #[derive(Debug)]
-pub struct Runner {
-    game: Conway,
+pub struct Runner<A: Automaton> {
+    automaton: A,
     config: Configuration,
     stop: bool,
 }
 
-impl Runner {
-    pub fn new(config: Configuration) -> Self {
-        let game = Conway::new(80, 40);
-
+impl<A: Automaton> Runner<A> {
+    pub fn new(config: Configuration, automaton: A) -> Self {
         Runner {
-            game,
+            automaton,
             config,
             stop: true,
         }
@@ -39,7 +36,7 @@ impl Runner {
 
     pub fn run(&mut self) -> Res<()> {
         let (event_tx, event_rx) = sync_channel::<RunnerEvent>(32);
-        let (painter_tx, painter_rx) = sync_channel::<Snapshot<ConwayCell>>(32);
+        let (painter_tx, painter_rx) = sync_channel::<Snapshot<A::Cell>>(32);
 
         let tick_rate = self.config.fps;
 
@@ -57,7 +54,7 @@ impl Runner {
 
         // Output thread
         thread::spawn(|| {
-            if let Err(e) = view::listen(terminal, painter_rx) {
+            if let Err(e) = view::listen::<A>(terminal, painter_rx) {
                 eprintln!("Erro no view listener... {e}");
                 view::quit();
             }
@@ -69,20 +66,18 @@ impl Runner {
 
             match event {
                 RunnerEvent::Tick if self.stop => (),
-                RunnerEvent::Tick => self.game.step(),
-                RunnerEvent::Revive(p) => self.game.paint_left(p),
-                RunnerEvent::AddAround(p) => self.game.paint_right(p),
+                RunnerEvent::Tick => self.automaton.step(),
+                RunnerEvent::Revive(p) => self.automaton.paint_left(p),
+                RunnerEvent::AddAround(p) => self.automaton.paint_right(p),
                 RunnerEvent::ToggleRun => self.stop = !self.stop,
                 RunnerEvent::Quit => view::quit(),
             }
 
-            painter_tx
-                .send(Snapshot {
-                    name: Conway::name().to_string(),
-                    iterations: self.game.iterations(),
-                    board: self.game.board().clone(),
-                })
-                .context("Falha ao enviar estado atual para pintar")?;
+            painter_tx.send(Snapshot {
+                name: Conway::name().to_string(),
+                iterations: self.automaton.iterations(),
+                board: self.automaton.board().clone(),
+            })?;
         }
     }
 

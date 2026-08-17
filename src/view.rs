@@ -7,17 +7,17 @@ use ratatui::widgets::{Block, Borders, Widget};
 use std::io::{stdout, Stdout};
 use std::sync::mpsc::Receiver;
 
-use crate::automaton::{Board, ConwayCell};
+use crate::automaton::{Automaton, Board};
 use crate::Res;
 
-pub fn listen(
+pub fn listen<A: Automaton>(
     terminal: Terminal<CrosstermBackend<Stdout>>,
-    rx: Receiver<Snapshot<ConwayCell>>,
+    rx: Receiver<Snapshot<A::Cell>>,
 ) -> Res<()> {
     let mut terminal = terminal;
     loop {
         let cells = rx.recv()?;
-        paint(&mut terminal, cells)?
+        paint::<A>(&mut terminal, cells)?
     }
 }
 
@@ -27,9 +27,9 @@ pub fn quit() {
     std::process::exit(0)
 }
 
-fn paint(
+fn paint<A: Automaton>(
     terminal: &mut Terminal<CrosstermBackend<Stdout>>,
-    cells: Snapshot<ConwayCell>,
+    cells: Snapshot<A::Cell>,
 ) -> Res<()> {
     terminal
         .draw(|f| {

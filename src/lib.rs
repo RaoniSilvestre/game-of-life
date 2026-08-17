@@ -6,6 +6,7 @@ mod view;
 
 use anyhow::Error;
 
+pub use automaton::{Automaton, Conway};
 pub use config::Configuration;
 pub use runner::Runner;
 
