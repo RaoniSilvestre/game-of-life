@@ -1,7 +1,7 @@
 use game_of_life::{Configuration, Conway, ConwayScene, Res, Runner};
 
 fn main() -> Res<()> {
-    let config = Configuration::configure();
+    let config = Configuration::configure()?;
 
     let scene = ConwayScene {
         height: 40,

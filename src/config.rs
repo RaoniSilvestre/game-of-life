@@ -1,4 +1,11 @@
+use std::{
+    fs::{self},
+    path::PathBuf,
+};
+
 use clap::Parser;
+
+use crate::Res;
 
 /// Basic simulator for Conway's Game of Life.
 #[derive(Parser, Debug)]
@@ -6,18 +13,32 @@ use clap::Parser;
 pub struct Cli {
     /// Frames per second
     #[arg(short, long, default_value_t = 1)]
-    pub fps: u64,
+    fps: u64,
+    /// Scene file
+    #[arg(short, long)]
+    scene: Option<PathBuf>,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct Configuration {
     pub fps: u64,
+    pub scene: Option<toml::Value>,
 }
 
 impl Configuration {
-    pub fn configure() -> Configuration {
+    pub fn configure() -> Res<Configuration> {
         let cli = Cli::parse();
 
-        Configuration { fps: cli.fps }
+        let scene = cli.scene.map(parse_file).transpose()?;
+
+        Ok(Configuration {
+            fps: cli.fps,
+            scene,
+        })
     }
+}
+
+fn parse_file(s: PathBuf) -> Res<toml::Value> {
+    let f = fs::read_to_string(s)?;
+    Ok(toml::de::from_str::<toml::Value>(&f)?)
 }
