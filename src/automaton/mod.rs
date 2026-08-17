@@ -1,18 +1,17 @@
-use crate::Res;
 use ratatui::prelude::Color;
+use serde::{de::DeserializeOwned, Serialize};
 
 mod conway;
 
-pub use conway::Conway;
+pub use conway::{Conway, ConwayScene};
 
 pub trait Automaton: Sized {
     type Cell: Into<Color> + Copy + Default + PartialEq + Send + 'static + Sync;
+    type Scene: DeserializeOwned + Serialize;
 
     fn name() -> &'static str;
     fn new(width: usize, height: usize) -> Self;
-    fn from_rows(width: usize, height: usize, _rows: &[String]) -> Res<Self> {
-        Ok(Self::new(width, height))
-    }
+    fn from(scene: Self::Scene) -> Self;
     fn board(&self) -> &Board<Self::Cell>;
     fn step(&mut self);
     fn paint_left(&mut self, _p: Point) {}

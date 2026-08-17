@@ -505,6 +505,7 @@ dependencies = [
  "crossterm",
  "rand 0.9.5",
  "ratatui",
+ "serde",
 ]
 
 [[package]]

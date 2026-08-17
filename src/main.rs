@@ -1,10 +1,14 @@
-use game_of_life::{Automaton, Configuration, Conway, Res, Runner};
+use game_of_life::{Configuration, Conway, ConwayScene, Res, Runner};
 
 fn main() -> Res<()> {
     let config = Configuration::configure();
 
-    let conway = Conway::new(80, 40);
-    let mut runner = Runner::new(config, conway);
+    let scene = ConwayScene {
+        height: 40,
+        width: 80,
+        rows: vec![],
+    };
+    let mut runner = Runner::<Conway>::new(config, scene);
 
     runner.run()
 }

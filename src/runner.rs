@@ -26,7 +26,9 @@ pub struct Runner<A: Automaton> {
 }
 
 impl<A: Automaton> Runner<A> {
-    pub fn new(config: Configuration, automaton: A) -> Self {
+    pub fn new(config: Configuration, scene: A::Scene) -> Self {
+        let automaton = A::from(scene);
+
         Runner {
             automaton,
             config,

@@ -4,10 +4,8 @@ mod listener;
 mod runner;
 mod view;
 
-use anyhow::Error;
-
-pub use automaton::{Automaton, Conway};
+pub use automaton::{Automaton, Conway, ConwayScene};
 pub use config::Configuration;
 pub use runner::Runner;
 
-pub type Res<T> = Result<T, Error>;
+pub type Res<T> = Result<T, anyhow::Error>;
