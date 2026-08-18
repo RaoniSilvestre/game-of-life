@@ -1,5 +1,7 @@
-use anyhow::{bail, Context};
-use game_of_life::{AutomatonType, Configuration, Conway, ConwayScene, Res, Runner};
+use anyhow::Context;
+use game_of_life::{
+    AutomatonType, Configuration, Conway, ConwayScene, FireScene, FireSim, Res, Runner,
+};
 
 fn main() -> Res<()> {
     let mut config = Configuration::configure()?;
@@ -12,7 +14,10 @@ fn main() -> Res<()> {
                     let scene: ConwayScene = value.try_into()?;
                     Runner::<Conway>::new(config, scene).run()
                 }
-                AutomatonType::FireSim => bail!("autômato FireSim ainda não implementado"),
+                AutomatonType::FireSim => {
+                    let scene: FireScene = value.try_into()?;
+                    Runner::<FireSim>::new(config, scene).run()
+                }
             }
         }
         None => Runner::<Conway>::new(config, ConwayScene::empty(80, 40)).run(),

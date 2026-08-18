@@ -7,7 +7,7 @@ mod view;
 use anyhow::{bail, Context};
 use toml::Value;
 
-pub use automaton::{Automaton, Conway, ConwayScene};
+pub use automaton::{Automaton, Conway, ConwayScene, FireScene, FireSim};
 pub use config::Configuration;
 pub use runner::Runner;
 

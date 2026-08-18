@@ -7,7 +7,7 @@ use clap::Parser;
 
 use crate::Res;
 
-/// Basic simulator for Conway's Game of Life.
+/// Basic simulator for automaton in terminal.
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 pub struct Cli {

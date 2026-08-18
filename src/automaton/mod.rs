@@ -2,8 +2,10 @@ use ratatui::prelude::Color;
 use serde::{de::DeserializeOwned, Serialize};
 
 mod conway;
+mod firesim;
 
 pub use conway::{Conway, ConwayScene};
+pub use firesim::{FireScene, FireSim};
 
 pub trait Automaton: Sized {
     type Cell: Into<Color> + Copy + Default + PartialEq + Send + 'static + Sync;

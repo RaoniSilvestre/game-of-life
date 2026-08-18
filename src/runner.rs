@@ -3,7 +3,7 @@ use std::{io::stdout, sync::mpsc::sync_channel, thread};
 use crossterm::{event::EnableMouseCapture, execute};
 
 use crate::{
-    automaton::{Automaton, Conway, Point},
+    automaton::{Automaton, Point},
     listener::{self},
     view::{self, Snapshot},
     Configuration, Res,
@@ -76,7 +76,7 @@ impl<A: Automaton> Runner<A> {
             }
 
             painter_tx.send(Snapshot {
-                name: Conway::name().to_string(),
+                name: A::name().to_string(),
                 iterations: self.automaton.iterations(),
                 board: self.automaton.board().clone(),
             })?;
