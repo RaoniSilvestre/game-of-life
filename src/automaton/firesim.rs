@@ -7,6 +7,8 @@
 //! A lógica é a mesma do original; apenas os índices numéricos do NumPy foram
 //! substituídos por enumerações tipadas.
 
+use std::sync::Arc;
+
 use rand::Rng;
 use ratatui::style::Color;
 use serde::{Deserialize, Serialize};
@@ -322,8 +324,8 @@ impl PrefMatrices {
 
 #[derive(Debug)]
 pub struct FireSim {
-    board: Board<FireCell>,
-    next: Board<FireCell>,
+    board: Arc<Board<FireCell>>,
+    next: Arc<Board<FireCell>>,
     exposure: Vec<f64>,
     timer: Vec<i32>,
     wind_direction: WindDirection,
@@ -335,8 +337,8 @@ pub struct FireSim {
 impl FireSim {
     fn with_size(width: usize, height: usize) -> Self {
         Self {
-            board: Board::new(width, height),
-            next: Board::new(width, height),
+            board: Arc::new(Board::new(width, height)),
+            next: Arc::new(Board::new(width, height)),
             exposure: vec![0.0; width * height],
             timer: vec![-1; width * height],
             wind_direction: WindDirection::Norte,
@@ -357,6 +359,7 @@ impl FireSim {
         let mut rng = rand::rng();
         let width = self.board.width();
         let height = self.board.height();
+        let board = Arc::make_mut(&mut self.board);
 
         for x in 0..height {
             for y in 0..width {
@@ -369,9 +372,9 @@ impl FireSim {
                     Vegetation::High
                 };
 
-                let mut cell = self.board.get((x as i32, y as i32));
+                let mut cell = board.get((x as i32, y as i32));
                 cell.vegetation = veg;
-                self.board.set((x as i32, y as i32), cell);
+                board.set((x as i32, y as i32), cell);
             }
         }
     }
@@ -392,9 +395,10 @@ impl FireSim {
             return;
         }
 
-        let mut cell = self.board.get((x as i32, y as i32));
+        let board = Arc::make_mut(&mut self.board);
+        let mut cell = board.get((x as i32, y as i32));
         cell.state = FireState::Burning;
-        self.board.set((x as i32, y as i32), cell);
+        board.set((x as i32, y as i32), cell);
     }
 
     /// Tempo de deterioração (gerações queimando até virar queimada).
@@ -435,10 +439,23 @@ impl FireSim {
     /// Porta a parte suscetível de `rules` (sfb.py:272-350): soma as
     /// preferências dos vizinhos inflamados e adiciona a exposição acumulada;
     /// se a soma for < 0.01 a probabilidade é 0 (sfb.py:290-293).
-    fn ignition_probability(&self, (x, y): Point, alcance: i32, veg: Vegetation) -> f64 {
-        let matrix = self.matrices.get(veg, self.wind_speed, self.wind_direction);
-        let width = self.board.width();
-        let height = self.board.height();
+    ///
+    /// Recebe os campos de forma explícita (em vez de `&self`) para permitir
+    /// chamá-la enquanto `self.next` está mutavelmente emprestado em `step`.
+    #[allow(clippy::too_many_arguments)]
+    fn ignition_probability(
+        board: &Board<FireCell>,
+        matrices: &PrefMatrices,
+        exposure: &[f64],
+        wind_speed: WindSpeed,
+        wind_direction: WindDirection,
+        (x, y): Point,
+        alcance: i32,
+        veg: Vegetation,
+    ) -> f64 {
+        let matrix = matrices.get(veg, wind_speed, wind_direction);
+        let width = board.width();
+        let height = board.height();
         let mut soma = 0.0;
 
         for i in -alcance..=alcance {
@@ -454,7 +471,7 @@ impl FireSim {
                     continue;
                 }
 
-                if self.board.get((xi, yj)).state == FireState::Burning {
+                if board.get((xi, yj)).state == FireState::Burning {
                     // sfb.py:288 — `matriz_preferencia[j + alcance][i + alcance]`.
                     soma += matrix[(i + alcance) as usize][(j + alcance) as usize];
                 }
@@ -464,7 +481,7 @@ impl FireSim {
         if soma < 0.01 {
             0.0
         } else {
-            (soma + self.exposure[x as usize * width + y as usize]).min(1.0)
+            (soma + exposure[x as usize * width + y as usize]).min(1.0)
         }
     }
 }
@@ -496,8 +513,8 @@ impl Automaton for FireSim {
         sim
     }
 
-    fn board(&self) -> &Board<FireCell> {
-        &self.board
+    fn board(&self) -> Arc<Board<FireCell>> {
+        self.board.clone()
     }
 
     fn step(&mut self) {
@@ -507,6 +524,7 @@ impl Automaton for FireSim {
         let height = self.board.height();
         let alcance = self.wind_speed.alcance();
         let mut rng = rand::rng();
+        let next_board = Arc::make_mut(&mut self.next);
 
         for x in 0..height {
             for y in 0..width {
@@ -530,7 +548,16 @@ impl Automaton for FireSim {
                     // sfb.py:272-350 — célula suscetível: pode inflamar ou
                     // acumular exposição.
                     FireState::Susceptible => {
-                        let prob = self.ignition_probability(p, alcance, cell.vegetation);
+                        let prob = Self::ignition_probability(
+                            &self.board,
+                            &self.matrices,
+                            &self.exposure,
+                            self.wind_speed,
+                            self.wind_direction,
+                            p,
+                            alcance,
+                            cell.vegetation,
+                        );
                         if rng.random::<f64>() <= prob {
                             next.state = FireState::Burning;
                         } else {
@@ -542,7 +569,7 @@ impl Automaton for FireSim {
                     FireState::Burnt => {}
                 }
 
-                self.next.set(p, next);
+                next_board.set(p, next);
             }
         }
 

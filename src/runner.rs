@@ -37,8 +37,8 @@ impl<A: Automaton> Runner<A> {
     }
 
     pub fn run(&mut self) -> Res<()> {
-        let (event_tx, event_rx) = sync_channel::<RunnerEvent>(32);
-        let (painter_tx, painter_rx) = sync_channel::<Snapshot<A::Cell>>(32);
+        let (event_tx, event_rx) = sync_channel::<RunnerEvent>(4);
+        let (painter_tx, painter_rx) = sync_channel::<Snapshot<A::Cell>>(1024);
 
         let tick_rate = self.config.fps;
 
@@ -78,7 +78,7 @@ impl<A: Automaton> Runner<A> {
             painter_tx.send(Snapshot {
                 name: A::name().to_string(),
                 iterations: self.automaton.iterations(),
-                board: self.automaton.board().clone(),
+                board: self.automaton.board(),
             })?;
         }
     }

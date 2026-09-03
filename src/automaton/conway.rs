@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use rand::seq::IndexedRandom;
 use ratatui::style::Color;
 use serde::{Deserialize, Serialize};
@@ -40,13 +42,13 @@ impl From<ConwayCell> for Color {
 
 #[derive(Debug)]
 pub struct Conway {
-    board: Board<ConwayCell>,
-    next: Board<ConwayCell>,
+    board: Arc<Board<ConwayCell>>,
+    next: Arc<Board<ConwayCell>>,
     iterations: usize,
 }
 
 impl Conway {
-    fn neighbours(&self, (x, y): Point) -> u8 {
+    fn neighbours(board: &Board<ConwayCell>, (x, y): Point) -> u8 {
         let mut alive = 0;
 
         for dx in -1..=1 {
@@ -56,7 +58,7 @@ impl Conway {
                     continue;
                 }
 
-                if self.board.get(p) == ConwayCell::Alive {
+                if board.get(p) == ConwayCell::Alive {
                     alive += 1;
                 }
             }
@@ -76,14 +78,15 @@ impl Automaton for Conway {
 
     fn new(width: usize, height: usize) -> Self {
         Self {
-            board: Board::new(width, height),
-            next: Board::new(width, height),
+            board: Arc::new(Board::new(width, height)),
+            next: Arc::new(Board::new(width, height)),
             iterations: 0,
         }
     }
 
     fn from(scene: Self::Scene) -> Self {
         let mut automaton = Self::new(scene.width, scene.height);
+        let board = Arc::make_mut(&mut automaton.board);
 
         for (x, row) in scene.rows.iter().enumerate() {
             for (y, c) in row.chars().enumerate() {
@@ -92,15 +95,15 @@ impl Automaton for Conway {
                     'X' | 'x' | '█' | 'O' => ConwayCell::Alive,
                     _ => ConwayCell::Dead,
                 };
-                automaton.board.set(p, cell);
+                board.set(p, cell);
             }
         }
 
         automaton
     }
 
-    fn board(&self) -> &Board<Self::Cell> {
-        &self.board
+    fn board(&self) -> Arc<Board<Self::Cell>> {
+        self.board.clone()
     }
 
     fn step(&mut self) {
@@ -108,11 +111,12 @@ impl Automaton for Conway {
 
         let width = self.board.width();
         let height = self.board.height();
+        let next_board = Arc::make_mut(&mut self.next);
 
         for x in 0..height {
             for y in 0..width {
                 let p = (x as i32, y as i32);
-                let neighbours = self.neighbours(p);
+                let neighbours = Self::neighbours(&self.board, p);
                 let cell = self.board.get(p);
 
                 let next_cell = match (cell, neighbours) {
@@ -121,7 +125,7 @@ impl Automaton for Conway {
                     _ => ConwayCell::Dead,
                 };
 
-                self.next.set(p, next_cell);
+                next_board.set(p, next_cell);
             }
         }
 
@@ -129,15 +133,18 @@ impl Automaton for Conway {
     }
 
     fn paint_left(&mut self, p: Point) {
-        let current = self.board.get(p);
+        let board = Arc::make_mut(&mut self.board);
+        let current = board.get(p);
         let next = match current {
             ConwayCell::Alive => ConwayCell::Dead,
             ConwayCell::Dead => ConwayCell::Alive,
         };
-        self.board.set(p, next);
+        board.set(p, next);
     }
 
     fn paint_right(&mut self, (x, y): Point) {
+        let board = Arc::make_mut(&mut self.board);
+
         let mut possible_points: Vec<Point> = Vec::with_capacity(64);
         for dx in -4..=3 {
             for dy in -4..=3 {
@@ -149,7 +156,7 @@ impl Automaton for Conway {
         let chosen = possible_points.as_slice().choose_multiple(&mut rng, 16);
 
         for (px, py) in chosen {
-            self.board.set((*px, *py), ConwayCell::Alive);
+            board.set((*px, *py), ConwayCell::Alive);
         }
     }
 

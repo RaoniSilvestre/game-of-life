@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use ratatui::prelude::Color;
 use serde::{de::DeserializeOwned, Serialize};
 
@@ -14,7 +16,7 @@ pub trait Automaton: Sized {
     fn name() -> &'static str;
     fn new(width: usize, height: usize) -> Self;
     fn from(scene: Self::Scene) -> Self;
-    fn board(&self) -> &Board<Self::Cell>;
+    fn board(&self) -> Arc<Board<Self::Cell>>;
     fn step(&mut self);
     fn paint_left(&mut self, _p: Point) {}
     fn paint_right(&mut self, _p: Point) {}

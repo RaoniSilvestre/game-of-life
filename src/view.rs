@@ -5,7 +5,7 @@ use crossterm::execute;
 use ratatui::prelude::*;
 use ratatui::widgets::{Block, Borders, Widget};
 use std::io::{stdout, Stdout};
-use std::sync::mpsc::Receiver;
+use std::sync::{mpsc::Receiver, Arc};
 
 use crate::automaton::{Automaton, Board};
 use crate::Res;
@@ -45,7 +45,7 @@ fn paint<A: Automaton>(
 pub struct Snapshot<C: Into<Color>> {
     pub name: String,
     pub iterations: usize,
-    pub board: Board<C>,
+    pub board: Arc<Board<C>>,
 }
 
 impl<C: Into<Color> + Copy + Default> Widget for Snapshot<C> {
