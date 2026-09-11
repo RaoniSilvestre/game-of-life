@@ -7,13 +7,129 @@
 //! A lógica é a mesma do original; apenas os índices numéricos do NumPy foram
 //! substituídos por enumerações tipadas.
 
+use crate::automaton::{Automaton, Board, Point};
+use macroquad::color::Color;
+use rand::Rng;
+use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
-use rand::Rng;
-use ratatui::style::Color;
-use serde::{Deserialize, Serialize};
+impl Automaton for FireSim {
+    type Cell = FireCell;
+    type Scene = FireScene;
 
-use crate::automaton::{Automaton, Board, Point};
+    fn name() -> &'static str {
+        "Simulação de Incêndios (SFB)"
+    }
+
+    fn new(width: usize, height: usize) -> Self {
+        let mut sim = Self::with_size(width, height);
+        sim.random_vegetation(Distribution::Realismo);
+        sim
+    }
+
+    fn from(scene: FireScene) -> Self {
+        let mut sim = Self::with_size(scene.width, scene.height);
+        sim.random_vegetation(scene.distribution);
+        sim.wind_direction = scene.wind_direction;
+        sim.wind_speed = scene.wind_speed;
+
+        for (x, y) in scene.fire {
+            sim.ignite(x as i32, y as i32);
+        }
+
+        sim
+    }
+
+    fn board(&self) -> Arc<Board<FireCell>> {
+        self.board.clone()
+    }
+
+    fn step(&mut self) {
+        self.iterations += 1;
+
+        let width = self.board.width();
+        let height = self.board.height();
+        let alcance = self.wind_speed.alcance();
+        let mut rng = rand::rng();
+        let next_board = Arc::make_mut(&mut self.next);
+
+        for x in 0..height {
+            for y in 0..width {
+                let p: Point = (x as i32, y as i32);
+                let idx = x * width + y;
+                let cell = self.board.get(p);
+                let mut next = cell;
+
+                match cell.state {
+                    // sfb.py:352-378 — célula inflamada: decrementa o tempo de
+                    // deterioração e vira queimada ao chegar em 0.
+                    FireState::Burning => {
+                        if self.timer[idx] == 0 {
+                            next.state = FireState::Burnt;
+                            self.timer[idx] = -1;
+                            self.exposure[idx] = 0.0;
+                        } else {
+                            self.timer[idx] -= 1;
+                        }
+                    }
+                    // sfb.py:272-350 — célula suscetível: pode inflamar ou
+                    // acumular exposição.
+                    FireState::Susceptible => {
+                        let prob = Self::ignition_probability(
+                            &self.board,
+                            &self.matrices,
+                            &self.exposure,
+                            self.wind_speed,
+                            self.wind_direction,
+                            p,
+                            alcance,
+                            cell.vegetation,
+                        );
+                        if rng.random::<f64>() <= prob {
+                            next.state = FireState::Burning;
+                        } else {
+                            let inc = Self::exposure_increment(cell.vegetation);
+                            let cap = Self::exposure_cap(cell.vegetation);
+                            self.exposure[idx] = (self.exposure[idx] + inc).min(cap);
+                        }
+                    }
+                    FireState::Burnt => {}
+                }
+
+                next_board.set(p, next);
+            }
+        }
+
+        std::mem::swap(&mut self.board, &mut self.next);
+
+        // sfb.py:200/214/228 (`check`) — ao inflamar, o contador de deterioração
+        // é inicializado com o tempo da vegetação da célula.
+        for idx in 0..(width * height) {
+            let cell = self.board.cells()[idx];
+            if cell.state == FireState::Burning && self.timer[idx] == -1 {
+                self.timer[idx] = Self::deterioration(cell.vegetation);
+            }
+        }
+    }
+
+    /// Clique esquerdo/scroll: acende a célula sob o cursor (projeto.py:410-412).
+    fn paint_left(&mut self, p: Point) {
+        self.ignite(p.0, p.1);
+    }
+
+    /// Clique direito: acende uma vizinhança 3x3 ao redor do cursor.
+    fn paint_right(&mut self, (x, y): Point) {
+        for dx in -1..=1 {
+            for dy in -1..=1 {
+                self.ignite(x + dx, y + dy);
+            }
+        }
+    }
+
+    fn iterations(&self) -> usize {
+        self.iterations
+    }
+}
 
 /// Tipo de vegetação de uma célula.
 ///
@@ -77,12 +193,12 @@ impl Default for FireCell {
 impl From<FireCell> for Color {
     fn from(cell: FireCell) -> Self {
         match cell.state {
-            FireState::Burning => Color::Rgb(226, 50, 54),
-            FireState::Burnt => Color::Rgb(40, 40, 40),
+            FireState::Burning => Color::from_rgba(226, 50, 54, 255),
+            FireState::Burnt => Color::from_rgba(40, 40, 40, 255),
             FireState::Susceptible => match cell.vegetation {
-                Vegetation::Low => Color::Rgb(144, 238, 144),
-                Vegetation::Medium => Color::Rgb(0, 128, 0),
-                Vegetation::High => Color::Rgb(0, 50, 0),
+                Vegetation::Low => Color::from_rgba(144, 238, 144, 255),
+                Vegetation::Medium => Color::from_rgba(0, 128, 0, 255),
+                Vegetation::High => Color::from_rgba(0, 50, 0, 255),
             },
         }
     }
@@ -388,16 +504,26 @@ impl FireSim {
             return;
         }
 
+        let h = self.board.height();
+        let w = self.board.width();
+
         let x = x as usize;
         let y = y as usize;
 
-        if x >= self.board.height() || y >= self.board.width() {
+        if x >= h || y >= w {
             return;
         }
 
         let board = Arc::make_mut(&mut self.board);
         let mut cell = board.get((x as i32, y as i32));
-        cell.state = FireState::Burning;
+        cell.state = match cell.state {
+            FireState::Susceptible => FireState::Burning,
+            _ => FireState::Burnt,
+        };
+
+        let idx = x * w + y;
+        self.timer[idx] = 3;
+
         board.set((x as i32, y as i32), cell);
     }
 
@@ -483,123 +609,5 @@ impl FireSim {
         } else {
             (soma + exposure[x as usize * width + y as usize]).min(1.0)
         }
-    }
-}
-
-impl Automaton for FireSim {
-    type Cell = FireCell;
-    type Scene = FireScene;
-
-    fn name() -> &'static str {
-        "Simulação de Incêndios (SFB)"
-    }
-
-    fn new(width: usize, height: usize) -> Self {
-        let mut sim = Self::with_size(width, height);
-        sim.random_vegetation(Distribution::Realismo);
-        sim
-    }
-
-    fn from(scene: FireScene) -> Self {
-        let mut sim = Self::with_size(scene.width, scene.height);
-        sim.random_vegetation(scene.distribution);
-        sim.wind_direction = scene.wind_direction;
-        sim.wind_speed = scene.wind_speed;
-
-        for (x, y) in scene.fire {
-            sim.ignite(x as i32, y as i32);
-        }
-
-        sim
-    }
-
-    fn board(&self) -> Arc<Board<FireCell>> {
-        self.board.clone()
-    }
-
-    fn step(&mut self) {
-        self.iterations += 1;
-
-        let width = self.board.width();
-        let height = self.board.height();
-        let alcance = self.wind_speed.alcance();
-        let mut rng = rand::rng();
-        let next_board = Arc::make_mut(&mut self.next);
-
-        for x in 0..height {
-            for y in 0..width {
-                let p: Point = (x as i32, y as i32);
-                let idx = x * width + y;
-                let cell = self.board.get(p);
-                let mut next = cell;
-
-                match cell.state {
-                    // sfb.py:352-378 — célula inflamada: decrementa o tempo de
-                    // deterioração e vira queimada ao chegar em 0.
-                    FireState::Burning => {
-                        if self.timer[idx] == 0 {
-                            next.state = FireState::Burnt;
-                            self.timer[idx] = -1;
-                            self.exposure[idx] = 0.0;
-                        } else {
-                            self.timer[idx] -= 1;
-                        }
-                    }
-                    // sfb.py:272-350 — célula suscetível: pode inflamar ou
-                    // acumular exposição.
-                    FireState::Susceptible => {
-                        let prob = Self::ignition_probability(
-                            &self.board,
-                            &self.matrices,
-                            &self.exposure,
-                            self.wind_speed,
-                            self.wind_direction,
-                            p,
-                            alcance,
-                            cell.vegetation,
-                        );
-                        if rng.random::<f64>() <= prob {
-                            next.state = FireState::Burning;
-                        } else {
-                            let inc = Self::exposure_increment(cell.vegetation);
-                            let cap = Self::exposure_cap(cell.vegetation);
-                            self.exposure[idx] = (self.exposure[idx] + inc).min(cap);
-                        }
-                    }
-                    FireState::Burnt => {}
-                }
-
-                next_board.set(p, next);
-            }
-        }
-
-        std::mem::swap(&mut self.board, &mut self.next);
-
-        // sfb.py:200/214/228 (`check`) — ao inflamar, o contador de deterioração
-        // é inicializado com o tempo da vegetação da célula.
-        for idx in 0..(width * height) {
-            let cell = self.board.cells()[idx];
-            if cell.state == FireState::Burning && self.timer[idx] == -1 {
-                self.timer[idx] = Self::deterioration(cell.vegetation);
-            }
-        }
-    }
-
-    /// Clique esquerdo/scroll: acende a célula sob o cursor (projeto.py:410-412).
-    fn paint_left(&mut self, p: Point) {
-        self.ignite(p.0, p.1);
-    }
-
-    /// Clique direito: acende uma vizinhança 3x3 ao redor do cursor.
-    fn paint_right(&mut self, (x, y): Point) {
-        for dx in -1..=1 {
-            for dy in -1..=1 {
-                self.ignite(x + dx, y + dy);
-            }
-        }
-    }
-
-    fn iterations(&self) -> usize {
-        self.iterations
     }
 }

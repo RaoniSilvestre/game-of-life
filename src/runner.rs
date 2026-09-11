@@ -1,22 +1,10 @@
-use std::{io::stdout, sync::mpsc::sync_channel, thread};
-
-use crossterm::{event::EnableMouseCapture, execute};
+use macroquad::prelude::*;
 
 use crate::{
-    automaton::{Automaton, Point},
-    listener::{self},
-    view::{self, Snapshot},
+    automaton::Automaton,
+    view::{self, Layout},
     Configuration, Res,
 };
-
-#[derive(Debug)]
-pub enum RunnerEvent {
-    Tick,
-    Revive(Point),
-    AddAround(Point),
-    ToggleRun,
-    Quit,
-}
 
 #[derive(Debug)]
 pub struct Runner<A: Automaton> {
@@ -36,54 +24,44 @@ impl<A: Automaton> Runner<A> {
         }
     }
 
-    pub fn run(&mut self) -> Res<()> {
-        let (event_tx, event_rx) = sync_channel::<RunnerEvent>(4);
-        let (painter_tx, painter_rx) = sync_channel::<Snapshot<A::Cell>>(1024);
+    pub async fn run(&mut self) -> Res<()> {
+        let tick_interval = 1.0 / self.config.fps as f64;
+        let mut last_step = get_time();
 
-        let tick_rate = self.config.fps;
-
-        let mut terminal = ratatui::init();
-        execute!(stdout(), EnableMouseCapture)?;
-        terminal.clear()?;
-
-        // Input thread
-        thread::spawn(move || {
-            if let Err(e) = listener::listen(event_tx, tick_rate) {
-                eprintln!("Erro no event listener... {e}");
-                view::quit();
-            }
-        });
-
-        // Output thread
-        thread::spawn(|| {
-            if let Err(e) = view::listen::<A>(terminal, painter_rx) {
-                eprintln!("Erro no view listener... {e}");
-                view::quit();
-            }
-        });
-
-        // Processing thread
         loop {
-            let event = event_rx.recv()?;
+            let layout = Layout::compute(&self.automaton);
+            self.handle_input(&layout);
 
-            match event {
-                RunnerEvent::Tick if self.stop => (),
-                RunnerEvent::Tick => self.automaton.step(),
-                RunnerEvent::Revive(p) => self.automaton.paint_left(p),
-                RunnerEvent::AddAround(p) => self.automaton.paint_right(p),
-                RunnerEvent::ToggleRun => self.stop = !self.stop,
-                RunnerEvent::Quit => view::quit(),
+            if !self.stop && get_time() - last_step >= tick_interval {
+                self.automaton.step();
+                last_step = get_time();
             }
 
-            painter_tx.send(Snapshot {
-                name: A::name().to_string(),
-                iterations: self.automaton.iterations(),
-                board: self.automaton.board(),
-            })?;
+            view::draw::<A>(&self.automaton, &layout);
+
+            next_frame().await;
         }
     }
 
-    pub fn tick(&self) -> u64 {
-        self.config.fps
+    fn handle_input(&mut self, layout: &Layout) {
+        if is_key_pressed(KeyCode::Escape) || is_key_pressed(KeyCode::Q) {
+            std::process::exit(0);
+        }
+
+        if is_key_pressed(KeyCode::Enter) || is_key_pressed(KeyCode::Space) {
+            self.stop = !self.stop;
+        }
+
+        if is_mouse_button_down(MouseButton::Left) {
+            if let Some(p) = layout.screen_to_cell(mouse_position()) {
+                self.automaton.paint_left(p);
+            }
+        }
+
+        if is_mouse_button_down(MouseButton::Right) {
+            if let Some(p) = layout.screen_to_cell(mouse_position()) {
+                self.automaton.paint_right(p);
+            }
+        }
     }
 }

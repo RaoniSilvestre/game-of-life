@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use ratatui::prelude::Color;
+use macroquad::color::Color;
 use serde::{de::DeserializeOwned, Serialize};
 
 mod conway;

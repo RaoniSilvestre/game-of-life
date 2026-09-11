@@ -1,6 +1,6 @@
 type = "sfb"
-width = 540
-height = 180
+width = 120
+height = 90
 wind_direction = "leste"
 wind_speed = "um"
 distribution = "realismo"

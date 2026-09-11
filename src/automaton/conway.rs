@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use rand::seq::IndexedRandom;
-use ratatui::style::Color;
+use macroquad::color::Color;
 use serde::{Deserialize, Serialize};
 
 use crate::automaton::{Automaton, Board, Point};
@@ -34,8 +34,8 @@ pub enum ConwayCell {
 impl From<ConwayCell> for Color {
     fn from(cell: ConwayCell) -> Self {
         match cell {
-            ConwayCell::Dead => Color::Black,
-            ConwayCell::Alive => Color::Green,
+            ConwayCell::Dead => Color::from_rgba(0, 0, 0, 255),
+            ConwayCell::Alive => Color::from_rgba(0, 255, 0, 255),
         }
     }
 }

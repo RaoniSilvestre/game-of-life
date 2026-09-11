@@ -1,75 +1,81 @@
-use anyhow::Context;
-use crossterm::cursor::Show;
-use crossterm::event::DisableMouseCapture;
-use crossterm::execute;
-use ratatui::prelude::*;
-use ratatui::widgets::{Block, Borders, Widget};
-use std::io::{stdout, Stdout};
-use std::sync::{mpsc::Receiver, Arc};
+use macroquad::prelude::*;
 
-use crate::automaton::{Automaton, Board};
-use crate::Res;
+use crate::automaton::{Automaton, Point};
 
-pub fn listen<A: Automaton>(
-    terminal: Terminal<CrosstermBackend<Stdout>>,
-    rx: Receiver<Snapshot<A::Cell>>,
-) -> Res<()> {
-    let mut terminal = terminal;
-    loop {
-        let cells = rx.recv()?;
-        paint::<A>(&mut terminal, cells)?
-    }
+const HEADER: f32 = 40.0;
+
+#[derive(Debug, Clone, Copy)]
+pub struct Layout {
+    origin_x: f32,
+    origin_y: f32,
+    cell_w: f32,
+    cell_h: f32,
+    width: usize,
+    height: usize,
 }
 
-pub fn quit() {
-    execute!(stdout(), DisableMouseCapture, Show).unwrap();
-    ratatui::restore();
-    std::process::exit(0)
-}
+impl Layout {
+    pub fn compute<A: Automaton>(automaton: &A) -> Self {
+        let board = automaton.board();
+        let width = board.width();
+        let height = board.height();
 
-fn paint<A: Automaton>(
-    terminal: &mut Terminal<CrosstermBackend<Stdout>>,
-    cells: Snapshot<A::Cell>,
-) -> Res<()> {
-    terminal
-        .draw(|f| {
-            let size = f.area();
-            f.render_widget(cells, size);
-        })
-        .context("Erro ao pintar tela!")?;
+        let sw = screen_width();
+        let sh = screen_height() - HEADER;
+        let cell_w = sw / width as f32;
+        let cell_h = sh / height as f32;
 
-    Ok(())
-}
-
-#[derive(Clone, Debug)]
-pub struct Snapshot<C: Into<Color>> {
-    pub name: String,
-    pub iterations: usize,
-    pub board: Arc<Board<C>>,
-}
-
-impl<C: Into<Color> + Copy + Default> Widget for Snapshot<C> {
-    fn render(self, area: Rect, buf: &mut Buffer) {
-        const CELL_CHAR: char = '█';
-
-        let block = Block::default()
-            .borders(Borders::ALL)
-            .title_top(self.name.as_str())
-            .title_bottom(format!(" Iterations: {} ", self.iterations));
-
-        let inner = block.inner(area);
-        block.render(area, buf);
-
-        let width = self.board.width();
-        for (idx, cell) in self.board.cells().iter().enumerate() {
-            let row = idx / width;
-            let col = idx % width;
-            let x = inner.x + col as u16;
-            let y = inner.y + row as u16;
-
-            if let Some(buf_cell) = buf.cell_mut((x, y)) {
-                buf_cell.set_char(CELL_CHAR).set_fg((*cell).into());
-            }
+        Self {
+            origin_x: 0.0,
+            origin_y: HEADER,
+            cell_w,
+            cell_h,
+            width,
+            height,
         }
     }
+
+    pub fn screen_to_cell(&self, (mx, my): (f32, f32)) -> Option<Point> {
+        if mx < self.origin_x || my < self.origin_y {
+            return None;
+        }
+
+        let col = ((mx - self.origin_x) / self.cell_w) as usize;
+        let row = ((my - self.origin_y) / self.cell_h) as usize;
+
+        if col >= self.width || row >= self.height {
+            return None;
+        }
+
+        Some((row as i32, col as i32))
+    }
+}
+
+pub fn draw<A: Automaton>(automaton: &A, layout: &Layout) {
+    clear_background(BLACK);
+
+    let board = automaton.board();
+
+    let grid_color = Color::from_rgba(30, 30, 30, 255);
+    let min_dim = layout.cell_w.min(layout.cell_h);
+    let gap = (min_dim * 0.08).max(1.0).min(min_dim / 3.0);
+
+    for (idx, cell) in board.cells().iter().enumerate() {
+        let row = idx / layout.width;
+        let col = idx % layout.width;
+        let x = layout.origin_x + col as f32 * layout.cell_w;
+        let y = layout.origin_y + row as f32 * layout.cell_h;
+
+        draw_rectangle(x, y, layout.cell_w, layout.cell_h, grid_color);
+        draw_rectangle(
+            x + gap,
+            y + gap,
+            layout.cell_w - 2.0 * gap,
+            layout.cell_h - 2.0 * gap,
+            (*cell).into(),
+        );
+    }
+
+    let title = format!("{} — Iterations: {}", A::name(), automaton.iterations());
+    draw_text(&title, 10.0, 24.0, 24.0, WHITE);
 }
